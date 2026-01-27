@@ -2,6 +2,7 @@ import tailwindcss from '@tailwindcss/vite'
 const appName = process.env.APP_NAME || 'RustFS'
 const baseUrl = (process.env.BASE_URL || '/rustfs/console/').replace(/\/$/, '')
 const appDescription = process.env.APP_DESCRIPTION || 'RustFS is a distributed file system written in Rust.'
+const gravitinoUrl = (process.env.GRAVITINO_API_URL || 'http://localhost:8090').replace(/\/$/, '')
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -9,6 +10,13 @@ export default defineNuxtConfig({
   css: ['~/assets/css/tailwind.css', '~/assets/css/overrides.css'],
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+  nitro: {
+    routeRules: {
+      '/api/gravitino/**': {
+        proxy: `${gravitinoUrl}/api/**`,
+      },
+    },
+  },
   app: {
     baseURL: baseUrl,
 
@@ -55,6 +63,10 @@ export default defineNuxtConfig({
       release: {
         version: process.env.VERSION || '',
         date: process.env.RELEASE_DATE || new Date().toISOString().slice(0, 10),
+      },
+
+      gravitino: {
+        url: gravitinoUrl,
       },
 
       // 授权信息
