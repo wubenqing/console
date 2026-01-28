@@ -105,25 +105,11 @@ const getResourceInUse = (resource: any): boolean | undefined => {
 
   const finalResult = propParsed ?? fallbackParsed
 
-  console.log(`[InUse Check] ${resource?.name}:`, {
-    propRaw,
-    directProp,
-    rawFallback,
-    finalResult
-  })
-
   return finalResult
 }
 
 const isResourceInUse = (resource: any): boolean => {
-  const result = getResourceInUse(resource) === true
-  console.log('[isResourceInUse] Checking:', {
-    resourceName: resource?.name,
-    rawResource: resource,
-    getResourceInUseResult: getResourceInUse(resource),
-    finalBoolean: result
-  })
-  return result
+  return getResourceInUse(resource) === true
 }
 
 const pickFirstString = (...candidates: any[]): string | undefined => {
@@ -152,9 +138,10 @@ const formatTime = (value: unknown): string | undefined => {
 const getCreatedBy = (resource: any): string | undefined => {
   if (!resource) return undefined
   return pickFirstString(
+    resource?.audit?.creator,
+    resource?.auditInfo?.creator,
     resource?.audit?.createdBy,
     resource?.auditInfo?.createdBy,
-    resource?.audit?.creator,
     resource?.createdBy,
     resource?.creator
   )
@@ -167,6 +154,33 @@ const getCreatedAt = (resource: any): string | undefined => {
     formatTime(resource?.auditInfo?.createTime) ??
     formatTime(resource?.createdAt) ??
     formatTime(resource?.createTime)
+  )
+}
+
+const getLastModifiedBy = (resource: any): string | undefined => {
+  if (!resource) return undefined
+  return pickFirstString(
+    resource?.audit?.lastModifier,
+    resource?.auditInfo?.lastModifier,
+    resource?.audit?.lastModifiedBy,
+    resource?.auditInfo?.lastModifiedBy,
+    resource?.audit?.updatedBy,
+    resource?.auditInfo?.updatedBy,
+    resource?.lastModifiedBy,
+    resource?.updatedBy
+  )
+}
+
+const getLastModifiedAt = (resource: any): string | undefined => {
+  if (!resource) return undefined
+  return (
+    formatTime(resource?.audit?.lastModifiedTime) ??
+    formatTime(resource?.auditInfo?.lastModifiedTime) ??
+    formatTime(resource?.audit?.updateTime) ??
+    formatTime(resource?.auditInfo?.updateTime) ??
+    formatTime(resource?.lastModifiedAt) ??
+    formatTime(resource?.updatedAt) ??
+    formatTime(resource?.updateTime)
   )
 }
 
@@ -291,6 +305,16 @@ const goToCatalog = (metalake: string, catalog: string, type: string) => goTo({ 
 const goToSchema = (metalake: string, catalog: string, type: string, schema: string) =>
   goTo({ metalake, catalog, type, schema })
 
+const navigateToBreadcrumb = (params: { metalake?: string; catalog?: string; schema?: string; entity?: string; type?: string }) => {
+  const query: any = {}
+  if (params.metalake) query.metalake = params.metalake
+  if (params.catalog) query.catalog = params.catalog
+  if (params.schema) query.schema = params.schema
+  if (params.entity) query.entity = params.entity
+  if (params.type) query.type = params.type
+  goTo(query)
+}
+
 const goToEntity = (metalake: string, catalog: string, type: string, schema: string, entity: string) => {
   switch (type) {
     case 'relational':
@@ -317,12 +341,6 @@ const currentMetalakeObj = computed<any | null>(() => {
   const name = q.value.metalake
   if (!name) return null
   const found = metalakes.value.find(m => m?.name === name) ?? null
-  console.log('[currentMetalakeObj] Computed:', {
-    searchName: name,
-    found: found,
-    foundInUse: found?.properties?.['in-use'],
-    allMetalakes: metalakes.value.map(m => ({ name: m.name, inUse: m.properties?.['in-use'] }))
-  })
   return found
 })
 
@@ -407,9 +425,9 @@ const setTreeLoading = (key: string, value: boolean) => {
 const catalogKeyOf = (catalog: string, type: string) => `${catalog}::${type}`
 const schemaKeyOf = (catalogKey: string, schema: string) => `${catalogKey}::${schema}`
 
-const loadSchemasForCatalog = async (metalake: string, catalogName: string, type: string) => {
+const loadSchemasForCatalog = async (metalake: string, catalogName: string, type: string, forceRefresh = false) => {
   const cKey = catalogKeyOf(catalogName, type)
-  if (treeSchemasByCatalogKey.value[cKey]) return
+  if (!forceRefresh && treeSchemasByCatalogKey.value[cKey]) return
   setTreeLoading(`schemas:${cKey}`, true)
   try {
     const schemasRes = await api.getSchemas(metalake, catalogName)
@@ -534,11 +552,27 @@ const toggleCatalogInUse = async (catalogName: string, next: boolean) => {
   const metalake = q.value.metalake
   if (!metalake) return
 
+  const previous = [...catalogs.value]
+
+  // Optimistically update local state
+  const idx = catalogs.value.findIndex(c => c?.name === catalogName)
+  if (idx !== -1) {
+    const current = catalogs.value[idx]
+    const updated = {
+      ...current,
+      inUse: next,
+      properties: { ...(current.properties || {}), 'in-use': String(next) },
+    }
+    catalogs.value = [
+      ...catalogs.value.slice(0, idx),
+      updated,
+      ...catalogs.value.slice(idx + 1),
+    ]
+  }
+
   try {
     isLoading.value = true
-    await api.updateCatalog(metalake, catalogName, {
-      updates: [{ '@type': 'setProperty', property: 'in-use', value: String(next) }],
-    })
+    await api.switchCatalogInUse(metalake, catalogName, next)
     message.success('Updated in-use')
     await refreshMetalakeContext(metalake)
 
@@ -547,6 +581,8 @@ const toggleCatalogInUse = async (catalogName: string, next: boolean) => {
       goToMetalake(metalake)
     }
   } catch (err: any) {
+    // Revert optimistic update on failure
+    catalogs.value = previous
     message.error('Failed to update in-use')
   } finally {
     isLoading.value = false
@@ -655,6 +691,10 @@ const refreshAll = async () => {
     const res = await api.getMetalakes()
     metalakes.value = res.metalakes || []
 
+    // Clear left tree cache to force reload
+    treeSchemasByCatalogKey.value = {}
+    treeEntitiesBySchemaKey.value = {}
+
     // Also refresh context if we are in a metalake detail view
     if (q.value.metalake) {
       // Catch error here so we don't break the whole refresh if just context fails
@@ -674,11 +714,6 @@ const refreshMetalakeContext = async (metalake: string) => {
       api.getMetalake(metalake).catch(() => null),
       api.getCatalogs(metalake),
     ])
-    console.log('DEBUG: Metalake refresh response:', {
-      url: metalake,
-      fullResponse: metalakeRes,
-      extractedInUse: (metalakeRes?.metalake ?? metalakeRes)?.properties?.['in-use']
-    })
     metalakeDetail.value = metalakeRes?.metalake ?? metalakeRes ?? null
     catalogs.value = catalogsRes.catalogs || []
   } catch (err: any) {
@@ -847,6 +882,7 @@ watch(
     const versionChanged = nextVersionKey !== lastVersionKey.value
 
     if (metalakeChanged) {
+      // Always refresh catalog list when metalake changes to ensure we always have the latest data
       await refreshMetalakeContext(metalake)
       schemas.value = []
       entities.value = []
@@ -876,7 +912,6 @@ watch(
     // If user pasted a URL with a disabled catalog, do not drill down.
     const selectedCatalog = catalogs.value.find(c => c?.name === catalog && c?.type === type)
     if (selectedCatalog && getResourceInUse(selectedCatalog) === false) {
-      message.warning('This catalog is disabled (in-use=false)')
       goToMetalake(metalake)
       return
     }
@@ -954,7 +989,7 @@ const copyIdentity = async () => {
 const typeLabel = (type?: string) => {
   switch (type) {
     case 'relational':
-      return 'Relational'
+      return 'Table'
     case 'fileset':
       return 'Fileset'
     case 'messaging':
@@ -1002,6 +1037,15 @@ const detailsRows = computed(() => {
   const name = getResourceName(target)
   if (name) rows.push({ label: 'Name', value: name })
 
+  // For catalog detail, show Type and Provider at the beginning (like Gravitino)
+  if (currentLevel.value === 'catalog') {
+    const type = pickFirstString(target?.type)
+    if (type) rows.push({ label: 'Type', value: typeLabel(type) })
+    
+    const provider = pickFirstString(target?.provider)
+    if (provider) rows.push({ label: 'Provider', value: provider })
+  }
+
   const comment = pickFirstString(target?.comment)
   if (comment) rows.push({ label: 'Comment', value: comment })
 
@@ -1012,17 +1056,26 @@ const detailsRows = computed(() => {
     rows.push({ label: 'In use', value: String(inUse) })
   }
 
-  const provider = pickFirstString(target?.provider)
-  if (provider) rows.push({ label: 'Provider', value: provider })
+  // For non-catalog levels, show provider and type after comment if available
+  if (currentLevel.value !== 'catalog') {
+    const provider = pickFirstString(target?.provider)
+    if (provider) rows.push({ label: 'Provider', value: provider })
 
-  const type = pickFirstString(target?.type)
-  if (type) rows.push({ label: 'Type', value: typeLabel(type) })
+    const type = pickFirstString(target?.type)
+    if (type) rows.push({ label: 'Type', value: typeLabel(type) })
+  }
 
   const createdBy = getCreatedBy(target)
   if (createdBy) rows.push({ label: 'Created by', value: createdBy })
 
   const createdAt = getCreatedAt(target)
   if (createdAt) rows.push({ label: 'Created at', value: createdAt })
+
+  const lastModifiedBy = getLastModifiedBy(target)
+  if (lastModifiedBy) rows.push({ label: 'Last modified by', value: lastModifiedBy })
+
+  const lastModifiedAt = getLastModifiedAt(target)
+  if (lastModifiedAt) rows.push({ label: 'Last modified at', value: lastModifiedAt })
 
   const properties = target?.properties
   if (properties && typeof properties === 'object') {
@@ -1033,6 +1086,40 @@ const detailsRows = computed(() => {
 })
 
 const showRawDetailsJson = ref(false)
+
+const breadcrumbItems = computed(() => {
+  const items: Array<{ label: string; params: { metalake?: string; catalog?: string; schema?: string; entity?: string; type?: string } }> = []
+  
+  if (q.value.metalake) {
+    items.push({
+      label: q.value.metalake,
+      params: { metalake: q.value.metalake }
+    })
+  }
+  
+  if (q.value.catalog) {
+    items.push({
+      label: q.value.catalog,
+      params: { metalake: q.value.metalake, catalog: q.value.catalog, type: q.value.type }
+    })
+  }
+  
+  if (q.value.schema) {
+    items.push({
+      label: q.value.schema,
+      params: { metalake: q.value.metalake, catalog: q.value.catalog, schema: q.value.schema, type: q.value.type }
+    })
+  }
+  
+  if (selectedEntityName.value) {
+    items.push({
+      label: selectedEntityName.value,
+      params: { metalake: q.value.metalake, catalog: q.value.catalog, schema: q.value.schema, entity: selectedEntityName.value, type: q.value.type }
+    })
+  }
+  
+  return items
+})
 
 const breadcrumbText = computed(() => {
   const parts = [q.value.metalake, q.value.catalog, q.value.schema, selectedEntityName.value].filter(Boolean)
@@ -1151,7 +1238,648 @@ const genUpdates = (original: any, next: any) => {
   return updates
 }
 
+// --- Create Catalog form (Gravitino-style structured form) ---
+
+// Provider definitions (matching Gravitino's provider system exactly)
+// For fileset type: NO provider selection (fixed as 'hadoop')
+// For model type: NO provider selection
+// For relational and messaging: provider selection required
+
+interface PropDef {
+  key: string
+  value: string
+  required: boolean
+  description?: string
+  select?: string[]
+  defaultValue?: string
+  parentField?: string
+  hide?: string[]
+}
+
+interface ProviderDef {
+  label: string
+  value: string
+  defaultProps: PropDef[]
+}
+
+const providers: ProviderDef[] = [
+  {
+    label: 'Apache Doris',
+    value: 'jdbc-doris',
+    defaultProps: [
+      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver' },
+      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:9030' },
+      { key: 'jdbc-user', value: '', required: true },
+      { key: 'jdbc-password', value: '', required: true },
+    ]
+  },
+  {
+    label: 'Apache Hive',
+    value: 'hive',
+    defaultProps: [
+      { key: 'metastore.uris', value: '', required: true, description: 'The Apache Hive metastore URIs' },
+    ]
+  },
+  {
+    label: 'Apache Hudi',
+    value: 'lakehouse-hudi',
+    defaultProps: [
+      { key: 'catalog-backend', value: 'hms', defaultValue: 'hms', required: true, select: ['hms'], description: 'Apache Hudi catalog type choose properties' },
+      { key: 'uri', value: '', required: true, description: 'Apache Hudi catalog uri config' },
+    ]
+  },
+  {
+    label: 'Apache Iceberg',
+    value: 'lakehouse-iceberg',
+    defaultProps: [
+      { key: 'catalog-backend', value: 'hive', defaultValue: 'hive', required: true, select: ['hive', 'jdbc', 'rest'], description: 'Apache Iceberg catalog type choose properties' },
+      { key: 'uri', value: '', required: true, description: 'Apache Iceberg catalog uri config' },
+      { key: 'warehouse', value: '', required: false, description: 'Apache Iceberg catalog warehouse config' },
+      { key: 'jdbc-driver', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'], description: '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL' },
+      { key: 'jdbc-user', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'] },
+      { key: 'jdbc-password', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'] },
+      { key: 'authentication.type', value: 'simple', defaultValue: 'simple', required: false, description: 'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple', select: ['simple', 'Kerberos'] },
+      { key: 'authentication.kerberos.principal', value: '', required: true, description: 'The principal of the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
+      { key: 'authentication.kerberos.keytab-uri', value: '', required: true, description: 'The URI of The keytab for the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
+    ]
+  },
+  {
+    label: 'Apache Paimon',
+    value: 'lakehouse-paimon',
+    defaultProps: [
+      { key: 'catalog-backend', value: 'filesystem', defaultValue: 'filesystem', required: true, select: ['filesystem', 'hive', 'jdbc'] },
+      { key: 'uri', value: '', required: true, description: 'e.g. thrift://127.0.0.1:9083 or jdbc:postgresql://127.0.0.1:5432/db_name', parentField: 'catalog-backend', hide: ['filesystem'] },
+      { key: 'warehouse', value: '', required: true, description: 'e.g. file:///user/hive/warehouse-paimon/ or hdfs://namespace/hdfs/path' },
+      { key: 'jdbc-driver', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'], description: '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL' },
+      { key: 'jdbc-user', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'] },
+      { key: 'jdbc-password', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'] },
+      { key: 'authentication.type', value: 'simple', defaultValue: 'simple', required: false, description: 'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple', select: ['simple', 'Kerberos'] },
+      { key: 'authentication.kerberos.principal', value: '', required: true, description: 'The principal of the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
+      { key: 'authentication.kerberos.keytab-uri', value: '', required: true, description: 'The URI of The keytab for the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
+    ]
+  },
+  {
+    label: 'Lakehouse Generic',
+    value: 'lakehouse-generic',
+    defaultProps: []
+  },
+  {
+    label: 'MySQL',
+    value: 'jdbc-mysql',
+    defaultProps: [
+      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver' },
+      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:3306' },
+      { key: 'jdbc-user', value: '', required: true },
+      { key: 'jdbc-password', value: '', required: true },
+    ]
+  },
+  {
+    label: 'OceanBase',
+    value: 'jdbc-oceanbase',
+    defaultProps: [
+      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver or com.oceanbase.jdbc.Driver' },
+      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:2881 or jdbc:oceanbase://localhost:2881' },
+      { key: 'jdbc-user', value: '', required: true },
+      { key: 'jdbc-password', value: '', required: true },
+    ]
+  },
+  {
+    label: 'PostgreSQL',
+    value: 'jdbc-postgresql',
+    defaultProps: [
+      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. org.postgresql.Driver' },
+      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:postgresql://localhost:5432/your_database' },
+      { key: 'jdbc-user', value: '', required: true },
+      { key: 'jdbc-password', value: '', required: true },
+      { key: 'jdbc-database', value: '', required: true },
+    ]
+  },
+  {
+    label: 'StarRocks',
+    value: 'jdbc-starrocks',
+    defaultProps: [
+      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver' },
+      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:9030' },
+      { key: 'jdbc-user', value: '', required: true },
+      { key: 'jdbc-password', value: '', required: true },
+    ]
+  },
+]
+
+const messagingProviders: ProviderDef[] = [
+  {
+    label: 'Apache Kafka',
+    value: 'kafka',
+    defaultProps: [
+      { key: 'bootstrap.servers', value: '', required: true, description: 'The Apache Kafka brokers to connect to, allowing for multiple brokers separated by commas' },
+    ]
+  },
+]
+
+// For fileset: No provider selection, no default props shown until user adds
+const filesetDefaultProps: PropDef[] = []
+
+const createCatalogOpen = ref(false)
+const createCatalogName = ref('')
+const createCatalogType = ref('relational')
+const createCatalogProvider = ref('hive') // Default to first relational provider
+const createCatalogComment = ref('')
+const createCatalogProps = ref<Array<{ key: string; value: string; required?: boolean; description?: string; select?: string[]; parentField?: string; hide?: string[] }>>([])
+
+// Computed: whether provider selection should be shown (not for fileset/model)
+const showProviderSelect = computed(() => {
+  return createCatalogType.value === 'relational' || createCatalogType.value === 'messaging'
+})
+
+// Computed: available providers based on type
+const availableProviders = computed((): ProviderDef[] => {
+  switch (createCatalogType.value) {
+    case 'relational':
+      return providers
+    case 'messaging':
+      return messagingProviders
+    default:
+      return []
+  }
+})
+
+// Helper: check if a property should be hidden based on parentField
+const shouldHideProp = (prop: { parentField?: string; hide?: string[] }) => {
+  if (!prop.parentField || !prop.hide) return false
+  const parentProp = createCatalogProps.value.find(p => p.key === prop.parentField)
+  if (!parentProp) return true // Parent not found, hide
+  return prop.hide.includes(parentProp.value)
+}
+
+const catalogBackendValue = computed(() =>
+  createCatalogProps.value.find(p => p.key === 'catalog-backend')?.value
+)
+
+const updateWarehouseRequired = () => {
+  if (createCatalogProvider.value !== 'lakehouse-iceberg') return
+  const backend = catalogBackendValue.value
+  const required = backend === 'hive' || backend === 'jdbc'
+  createCatalogProps.value = createCatalogProps.value.map(p =>
+    p.key === 'warehouse' ? { ...p, required } : p
+  )
+}
+
+// Watch for provider change to update properties
+watch(createCatalogProvider, (newProvider) => {
+  if (!showProviderSelect.value) return
+  const provider = availableProviders.value.find(p => p.value === newProvider)
+  if (provider && provider.defaultProps) {
+    createCatalogProps.value = provider.defaultProps.map(p => ({
+      key: p.key,
+      value: p.defaultValue || p.value,
+      required: p.required,
+      description: p.description,
+      select: p.select,
+      parentField: p.parentField,
+      hide: p.hide,
+    }))
+  } else {
+    createCatalogProps.value = []
+  }
+  updateWarehouseRequired()
+}, { immediate: true })
+
+watch(catalogBackendValue, () => {
+  updateWarehouseRequired()
+})
+
+// Watch for type change to reset provider and properties
+watch(createCatalogType, (newType) => {
+  switch (newType) {
+    case 'relational':
+      createCatalogProvider.value = 'hive'
+      break
+    case 'messaging':
+      createCatalogProvider.value = 'kafka'
+      break
+    case 'fileset':
+      createCatalogProvider.value = ''
+      createCatalogProps.value = filesetDefaultProps.map(p => ({
+        key: p.key,
+        value: p.value,
+        required: p.required,
+        description: p.description,
+      }))
+      break
+    case 'model':
+      createCatalogProvider.value = ''
+      createCatalogProps.value = []
+      break
+  }
+})
+
+const catalogPropsObject = computed(() => {
+  const obj: Record<string, string> = {}
+  for (const row of createCatalogProps.value) {
+    const k = row.key?.trim()
+    if (!k) continue
+    // Skip hidden fields
+    if (shouldHideProp(row)) continue
+    // Skip empty non-required fields
+    if (!row.required && !row.value?.trim()) continue
+    obj[k] = row.value ?? ''
+  }
+  return obj
+})
+
+const isCatalogFormValid = computed(() => {
+  if (!createCatalogName.value.trim()) return false
+  // Provider not required for fileset and model types
+  if (showProviderSelect.value && !createCatalogProvider.value) return false
+  
+  // Check required properties (only visible ones)
+  for (const prop of createCatalogProps.value) {
+    if (shouldHideProp(prop)) continue
+    if (prop.required && !prop.value?.trim()) {
+      return false
+    }
+  }
+  
+  return true
+})
+
+const addCatalogPropRow = () => {
+  createCatalogProps.value = [...createCatalogProps.value, { key: '', value: '', required: false }]
+}
+
+const removeCatalogPropRow = (idx: number) => {
+  // Don't allow removing required props
+  const prop = createCatalogProps.value[idx]
+  if (prop?.required) return
+  createCatalogProps.value = createCatalogProps.value.filter((_, i) => i !== idx)
+}
+
+const submitCreateCatalog = async () => {
+  const name = createCatalogName.value.trim()
+  const metalake = q.value.metalake
+  if (!name) {
+    message.error('Name is required')
+    return
+  }
+  // Provider required only for relational and messaging
+  if (showProviderSelect.value && !createCatalogProvider.value) {
+    message.error('Provider is required')
+    return
+  }
+  if (!metalake) {
+    message.error('Metalake context is required')
+    return
+  }
+  
+  // Validate required properties (only visible ones)
+  const missingRequired = createCatalogProps.value.find(p => !shouldHideProp(p) && p.required && !p.value?.trim())
+  if (missingRequired) {
+    message.error(`Required property "${missingRequired.key}" is missing`)
+    return
+  }
+
+  try {
+    isLoading.value = true
+    await api.createCatalog(metalake, {
+      name,
+      type: createCatalogType.value,
+      provider: createCatalogProvider.value || undefined,
+      comment: createCatalogComment.value,
+      properties: catalogPropsObject.value,
+    })
+    message.success('Catalog created')
+    createCatalogOpen.value = false
+    await refreshMetalakeContext(metalake)
+    goToCatalog(metalake, name, createCatalogType.value)
+  } catch (err: any) {
+    message.error(err?.message || 'Failed to create catalog')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// --- Create Schema form (Gravitino-style structured form) ---
+const createSchemaOpen = ref(false)
+const createSchemaName = ref('')
+const createSchemaComment = ref('')
+const createSchemaProps = ref<Array<{ key: string; value: string }>>([{ key: '', value: '' }])
+
+const schemaPropsObject = computed(() => {
+  const obj: Record<string, string> = {}
+  for (const row of createSchemaProps.value) {
+    const k = row.key?.trim()
+    if (!k) continue
+    obj[k] = row.value ?? ''
+  }
+  return obj
+})
+
+const addSchemaPropRow = () => {
+  createSchemaProps.value = [...createSchemaProps.value, { key: '', value: '' }]
+}
+
+const removeSchemaPropRow = (idx: number) => {
+  if (createSchemaProps.value.length <= 1) return
+  createSchemaProps.value = createSchemaProps.value.filter((_, i) => i !== idx)
+}
+
+const submitCreateSchema = async () => {
+  const name = createSchemaName.value.trim()
+  const metalake = q.value.metalake
+  const catalog = q.value.catalog
+  const type = q.value.type
+  if (!name) {
+    message.error('Name is required')
+    return
+  }
+  if (!metalake || !catalog || !type) {
+    message.error('Catalog context is required')
+    return
+  }
+
+  try {
+    isLoading.value = true
+    await api.createSchema(metalake, catalog, {
+      name,
+      comment: createSchemaComment.value,
+      properties: schemaPropsObject.value,
+    })
+    message.success('Schema created')
+    createSchemaOpen.value = false
+    await refreshCatalogContext(metalake, catalog, type)
+    // Stay on catalog page, don't navigate
+    // Force refresh left tree with forceRefresh=true
+    await loadSchemasForCatalog(metalake, catalog, type, true)
+  } catch (err: any) {
+    message.error(err?.message || 'Failed to create schema')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// Column type mapping by provider (from Gravitino initial.js)
+const relationalColumnTypeMap: Record<string, string[]> = {
+  'lakehouse-iceberg': ['binary', 'boolean', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'long', 'string', 'time', 'timestamp', 'timestamp_tz', 'uuid'],
+  'hive': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'interval_day', 'interval_year', 'long', 'short', 'string', 'timestamp', 'varchar'],
+  'jdbc-mysql': ['binary', 'byte', 'byte unsigned', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'integer unsigned', 'long', 'long unsigned', 'short', 'short unsigned', 'string', 'time', 'timestamp', 'varchar'],
+  'jdbc-postgresql': ['binary', 'boolean', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'time', 'timestamp', 'timestamp_tz', 'varchar'],
+  'jdbc-starrocks': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'timestamp', 'varchar'],
+  'jdbc-doris': ['boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'timestamp', 'varchar'],
+  'lakehouse-paimon': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'long', 'short', 'string', 'time', 'timestamp', 'timestamp_tz', 'varchar'],
+  'lakehouse-generic': ['binary', 'boolean', 'byte', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'interval_day', 'interval_year', 'long', 'short', 'string', 'time', 'timestamp'],
+  'jdbc-oceanbase': ['binary', 'byte', 'byte unsigned', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'integer unsigned', 'long', 'long unsigned', 'short', 'short unsigned', 'string', 'time', 'timestamp', 'varchar']
+}
+
+// Table property info by provider (from Gravitino initial.js)
+const relationalTablePropInfo: Record<string, { immutable: string[]; defaultProps?: Array<{ key: string; value: string; required?: boolean; description?: string; disabled?: boolean }> }> = {
+  'lakehouse-generic': {
+    immutable: ['format', 'location'],
+    defaultProps: [
+      { key: 'location', value: '', required: true, description: 'The storage location of the table. Required if not set in catalog or schema.' },
+      { key: 'format', value: 'lance', required: false, description: "The table format. Currently only 'lance' is supported.", disabled: true }
+    ]
+  },
+  'lakehouse-iceberg': {
+    immutable: ['location', 'provider', 'format', 'format-version']
+  },
+  'hive': {
+    immutable: ['format', 'input-format', 'location', 'output-format', 'serde-name', 'serde-lib', 'serde.parameter', 'table-type']
+  },
+  'lakehouse-paimon': {
+    immutable: ['merge-engine', 'rowkind.field', 'sequence.field']
+  },
+  'jdbc-mysql': {
+    immutable: ['auto-increment-offset', 'engine']
+  }
+}
+
+const getColumnTypesForProvider = (provider: string | undefined): string[] => {
+  if (!provider) return []
+  return relationalColumnTypeMap[provider] || []
+}
+
+const getTablePropInfo = (provider: string | undefined) => {
+  if (!provider) return { immutable: [], defaultProps: [] }
+  return relationalTablePropInfo[provider] || { immutable: [], defaultProps: [] }
+}
+
+// --- Create Table form (Gravitino-style structured form) ---
+const createTableOpen = ref(false)
+const createTableName = ref('')
+const createTableComment = ref('')
+const createTableColumns = ref<Array<{ name: string; type: string; nullable: boolean; comment: string }>>([
+  { name: '', type: '', nullable: true, comment: '' }
+])
+const createTableProps = ref<Array<{ key: string; value: string; disabled?: boolean; required?: boolean; description?: string }>>([
+  { key: 'location', value: '' },
+  { key: 'format', value: 'lance' }
+])
+
+const tablePropsObject = computed(() => {
+  const obj: Record<string, string> = {}
+  for (const row of createTableProps.value) {
+    const k = row.key?.trim()
+    if (!k) continue
+    obj[k] = row.value ?? ''
+  }
+  return obj
+})
+
+const addTableColumn = () => {
+  createTableColumns.value = [...createTableColumns.value, { name: '', type: '', nullable: true, comment: '' }]
+}
+
+const removeTableColumn = (idx: number) => {
+  if (createTableColumns.value.length <= 1) return
+  createTableColumns.value = createTableColumns.value.filter((_, i) => i !== idx)
+}
+
+const addTablePropRow = () => {
+  createTableProps.value = [...createTableProps.value, { key: '', value: '' }]
+}
+
+const removeTablePropRow = (idx: number) => {
+  if (createTableProps.value.length <= 1) return
+  createTableProps.value = createTableProps.value.filter((_, i) => i !== idx)
+}
+
+const submitCreateTable = async () => {
+  const name = createTableName.value.trim()
+  const metalake = q.value.metalake
+  const catalog = q.value.catalog
+  const schema = q.value.schema
+  const type = q.value.type
+  if (!name) {
+    message.error('Name is required')
+    return
+  }
+  if (!metalake || !catalog || !schema || !type) {
+    message.error('Schema context is required')
+    return
+  }
+
+  // Validate columns
+  const columns = createTableColumns.value.filter(c => c.name.trim() && c.type.trim())
+  if (columns.length === 0) {
+    message.error('At least one column is required')
+    return
+  }
+
+  try {
+    isLoading.value = true
+    await api.createTable(metalake, catalog, schema, {
+      name,
+      comment: createTableComment.value,
+      columns: columns.map(c => ({
+        name: c.name,
+        dataType: c.type,
+        nullable: c.nullable,
+        comment: c.comment
+      })),
+      properties: tablePropsObject.value,
+    })
+    message.success('Table created')
+    createTableOpen.value = false
+    await refreshSchemaContext(metalake, catalog, type, schema)
+    // Stay on schema page, don't navigate
+  } catch (err: any) {
+    message.error(err?.message || 'Failed to create table')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+// --- Create Fileset form (Gravitino-style structured form) ---
+const createFilesetOpen = ref(false)
+const createFilesetName = ref('')
+const createFilesetType = ref('Managed')
+const createFilesetComment = ref('')
+const createFilesetLocations = ref<Array<{ name: string; location: string }>>([{ name: '', location: '' }])
+const createFilesetProps = ref<Array<{ key: string; value: string }>>([{ key: '', value: '' }])
+
+const filesetPropsObject = computed(() => {
+  const obj: Record<string, string> = {}
+  for (const row of createFilesetProps.value) {
+    const k = row.key?.trim()
+    if (!k) continue
+    obj[k] = row.value ?? ''
+  }
+  return obj
+})
+
+const addFilesetLocation = () => {
+  const idx = createFilesetLocations.value.length + 1
+  createFilesetLocations.value = [...createFilesetLocations.value, { name: `Name ${idx}`, location: `Location ${idx}` }]
+}
+
+const removeFilesetLocation = (idx: number) => {
+  if (createFilesetLocations.value.length <= 1) return
+  createFilesetLocations.value = createFilesetLocations.value.filter((_, i) => i !== idx)
+}
+
+const addFilesetPropRow = () => {
+  createFilesetProps.value = [...createFilesetProps.value, { key: '', value: '' }]
+}
+
+const removeFilesetPropRow = (idx: number) => {
+  if (createFilesetProps.value.length <= 1) return
+  createFilesetProps.value = createFilesetProps.value.filter((_, i) => i !== idx)
+}
+
+const submitCreateFileset = async () => {
+  const name = createFilesetName.value.trim()
+  const metalake = q.value.metalake
+  const catalog = q.value.catalog
+  const schema = q.value.schema
+  const type = q.value.type
+  if (!name) {
+    message.error('Name is required')
+    return
+  }
+  if (!metalake || !catalog || !schema || !type) {
+    message.error('Schema context is required')
+    return
+  }
+
+  try {
+    isLoading.value = true
+    const storageLocation = createFilesetLocations.value[0]?.location || ''
+    await api.createFileset(metalake, catalog, schema, {
+      name,
+      type: createFilesetType.value,
+      storageLocation,
+      comment: createFilesetComment.value,
+      properties: filesetPropsObject.value,
+    })
+    message.success('Fileset created')
+    createFilesetOpen.value = false
+    await refreshSchemaContext(metalake, catalog, type, schema)
+    // Stay on schema page, don't navigate
+  } catch (err: any) {
+    message.error(err?.message || 'Failed to create fileset')
+  } finally {
+    isLoading.value = false
+  }
+}
+
 const openCreate = (kind: ResourceKind) => {
+  // For catalog, schema, table, fileset, use Gravitino-style structured forms
+  if (kind === 'catalog') {
+    createCatalogName.value = ''
+    createCatalogType.value = 'relational'
+    createCatalogProvider.value = ''
+    createCatalogComment.value = ''
+    createCatalogProps.value = [{ key: '', value: '' }]
+    createCatalogOpen.value = true
+    return
+  }
+  
+  if (kind === 'schema') {
+    createSchemaName.value = ''
+    createSchemaComment.value = ''
+    createSchemaProps.value = [{ key: '', value: '' }]
+    createSchemaOpen.value = true
+    return
+  }
+  
+  if (kind === 'table') {
+    createTableName.value = ''
+    createTableComment.value = ''
+    createTableColumns.value = [{ name: '', type: '', nullable: true, comment: '' }]
+    
+    // Get current catalog provider to set default props
+    const catalog = catalogs.value.find(c => c.name === q.value.catalog)
+    const provider = catalog?.provider
+    const propInfo = getTablePropInfo(provider)
+    
+    // Initialize properties with default props from provider config
+    if (propInfo.defaultProps && propInfo.defaultProps.length > 0) {
+      createTableProps.value = propInfo.defaultProps.map(p => ({
+        key: p.key,
+        value: p.value,
+        disabled: p.disabled,
+        required: p.required,
+        description: p.description
+      }))
+    } else {
+      createTableProps.value = [{ key: '', value: '' }]
+    }
+    
+    createTableOpen.value = true
+    return
+  }
+  
+  if (kind === 'fileset') {
+    createFilesetName.value = ''
+    createFilesetType.value = 'Managed'
+    createFilesetComment.value = ''
+    createFilesetLocations.value = [{ name: '', location: '' }]
+    createFilesetProps.value = [{ key: '', value: '' }]
+    createFilesetOpen.value = true
+    return
+  }
+  
+  // For other types (topic, model, version), continue using JSON editor
   editKind.value = kind
   editMode.value = 'create'
   editDescription.value = 'Edit the JSON payload. Required fields depend on provider/type.'
@@ -1198,11 +1926,8 @@ const openCreate = (kind: ResourceKind) => {
     },
   }
 
-  if (kind === 'catalog' && metalake) {
-    editTitle.value = `Create Catalog in ${metalake}`
-  } else if (kind === 'schema' && metalake && catalog) {
-    editTitle.value = `Create Schema in ${metalake}.${catalog}`
-  } else if ((kind === 'table' || kind === 'fileset' || kind === 'topic' || kind === 'model') && metalake && catalog && schema) {
+  // Title generation for JSON editor mode (only topic, model, version now)
+  if (kind === 'topic' || kind === 'model') {
     editTitle.value = `Create ${kind} in ${metalake}.${catalog}.${schema}`
   } else if (kind === 'version' && metalake && catalog && schema && entity) {
     editTitle.value = `Link Version for ${metalake}.${catalog}.${schema}.${entity}`
@@ -1231,13 +1956,112 @@ const openEdit = (kind: ResourceKind) => {
             : entityDetail.value
 
   if (!current) {
+    // For some actions (e.g. catalog edit from list), details may not be loaded yet.
+    // Try to load details based on current route context.
+    const metalake = q.value.metalake
+    const catalog = q.value.catalog
+    if (kind === 'catalog' && metalake && catalog) {
+      isLoading.value = true
+      api
+        .getCatalog(metalake, catalog)
+        .then(res => {
+          catalogDetail.value = res?.catalog ?? res ?? null
+          if (!catalogDetail.value) {
+            message.warning('No details loaded yet')
+            return
+          }
+          editTitle.value = `Edit ${kind}`
+          editJson.value = JSON.stringify(catalogDetail.value, null, 2)
+          editOpen.value = true
+        })
+        .catch(() => message.error('Failed to load catalog details'))
+        .finally(() => {
+          isLoading.value = false
+        })
+      return
+    }
+
     message.warning('No details loaded yet')
     return
+  }
+
+  // Catalog edit should use the structured dialog (Gravitino-like).
+  if (kind === 'catalog') {
+    const metalake = q.value.metalake
+    const catalog = q.value.catalog
+    if (metalake && catalog) {
+      void openCatalogEdit(metalake, catalog)
+      return
+    }
   }
 
   editTitle.value = `Edit ${kind}`
   editJson.value = JSON.stringify(current, null, 2)
   editOpen.value = true
+}
+
+// --- Catalog edit form (Gravitino-like) ---
+const editCatalogOpen = ref(false)
+const editCatalogOriginal = ref<any | null>(null)
+const editCatalogName = ref('')
+const editCatalogComment = ref('')
+const editCatalogProps = ref<Array<{ key: string; value: string; disabled?: boolean }>>([{ key: '', value: '' }])
+
+async function openCatalogEdit(metalake: string, catalog: string) {
+  try {
+    isLoading.value = true
+    const res = await api.getCatalog(metalake, catalog)
+    const c = res?.catalog ?? res
+    if (!c) {
+      message.warning('No details loaded yet')
+      return
+    }
+    catalogDetail.value = c
+    editCatalogOriginal.value = c
+    editCatalogName.value = c?.name ?? catalog
+    editCatalogComment.value = c?.comment ?? ''
+    editCatalogProps.value = propsObjectToRows(c?.properties)
+    editCatalogOpen.value = true
+  } catch {
+    message.error('Failed to load catalog details')
+  } finally {
+    isLoading.value = false
+  }
+}
+
+async function submitEditCatalog() {
+  const original = editCatalogOriginal.value
+  const metalake = q.value.metalake
+  if (!original || !metalake) return
+
+  const next = {
+    name: editCatalogName.value.trim(),
+    comment: editCatalogComment.value,
+    properties: propsRowsToObject(editCatalogProps.value),
+  }
+  if (!next.name) {
+    message.error('Name is required')
+    return
+  }
+
+  try {
+    isLoading.value = true
+    const updates = genUpdates(original, next)
+    await api.updateCatalog(metalake, original?.name ?? next.name, { updates })
+    message.success('Catalog updated')
+    editCatalogOpen.value = false
+    await refreshMetalakeContext(metalake)
+    // If renamed, keep user on the updated route
+    if (original?.name && next.name && original.name !== next.name) {
+      goToCatalog(metalake, next.name, q.value.type || original?.type || 'relational')
+    } else if (q.value.catalog) {
+      await refreshCatalogContext(metalake, q.value.catalog, q.value.type || original?.type || 'relational')
+    }
+  } catch (err: any) {
+    message.error(err?.message || 'Failed to update catalog')
+  } finally {
+    isLoading.value = false
+  }
 }
 
 const submitEdit = async () => {
@@ -1473,6 +2297,7 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshMetalakeContext(metalake)
+        catalogs.value = catalogs.value.filter(c => c.name !== catalog)
         goToMetalake(metalake)
         return
       case 'schema':
@@ -1482,6 +2307,9 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshCatalogContext(metalake, catalog, type)
+        schemas.value = schemas.value.filter(s => s !== schema)
+        // Force refresh left tree
+        await loadSchemasForCatalog(metalake, catalog, type, true)
         goToCatalog(metalake, catalog, type)
         return
       case 'table':
@@ -1491,6 +2319,7 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
+        entities.value = entities.value.filter(e => getResourceName(e) !== entity)
         goToSchema(metalake, catalog, type, schema)
         return
       case 'fileset':
@@ -1500,6 +2329,7 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
+        entities.value = entities.value.filter(e => getResourceName(e) !== entity)
         goToSchema(metalake, catalog, type, schema)
         return
       case 'topic':
@@ -1509,6 +2339,7 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
+        entities.value = entities.value.filter(e => getResourceName(e) !== entity)
         goToSchema(metalake, catalog, type, schema)
         return
       case 'model':
@@ -1518,6 +2349,7 @@ const confirmDelete = async () => {
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
+        entities.value = entities.value.filter(e => getResourceName(e) !== entity)
         goToSchema(metalake, catalog, type, schema)
         return
       case 'version':
@@ -1541,169 +2373,92 @@ const confirmDelete = async () => {
 <template>
   <Page>
     <PageHeader>
-      <h1 class="text-2xl font-bold">Catalog</h1>
+      <div class="flex items-center gap-2">
+        <Button
+          v-if="currentLevel !== 'metalake-list'"
+          variant="outline"
+          size="sm"
+          class="px-2 inline-flex items-center gap-2"
+          @click="goToMetalakeList"
+        >
+          <Icon name="ri:arrow-left-line" class="size-4" />
+          <span>Back Metalakes</span>
+        </Button>
+      </div>
       <template #description>
         <!-- intentionally empty: keep console header clean -->
       </template>
       <template #actions>
-        <div v-if="q.metalake && !q.catalog" class="inline-flex items-center gap-2">
-          <span class="text-sm text-muted-foreground">In use</span>
-          <!-- Debug: {{ isResourceInUse(metalakeDetail || currentMetalakeObj) }} -->
-          <Switch
-            :key="`header-metalake-${q.metalake}-${isResourceInUse(metalakeDetail || currentMetalakeObj)}`"
-            :checked="isResourceInUse(metalakeDetail || currentMetalakeObj)"
-            :disabled="isLoading"
-            @update:checked="toggleMetalakeInUse"
-          />
-        </div>
+        <!-- Metalake page (Gravitino-like): keep header clean and focused -->
+        <template v-if="q.metalake && !q.catalog">
+          <Button variant="outline" class="inline-flex items-center gap-2" @click="openCreate('catalog')">
+            <Icon name="ri:add-line" class="size-4" />
+            <span>Create Catalog</span>
+          </Button>
+          <Button variant="outline" class="inline-flex items-center gap-2" @click="refreshAll">
+            <Icon name="ri:refresh-line" class="size-4" />
+            <span>Refresh</span>
+          </Button>
+        </template>
 
-        <div v-if="q.catalog && q.type && !q.schema" class="inline-flex items-center gap-2">
-          <span class="text-sm text-muted-foreground">In use</span>
-          <Switch
-            :key="`header-catalog-${q.catalog}-${isResourceInUse(catalogDetail || currentCatalogObj)}`"
-            :checked="isResourceInUse(catalogDetail || currentCatalogObj)"
-            :disabled="isLoading"
-            @update:checked="(v: boolean) => toggleCatalogInUse(q.catalog || '', v)"
-          />
-        </div>
+        <!-- Other levels keep existing actions (create/edit/delete + switches) -->
+        <template v-else>
+          <Button
+            v-if="q.catalog && q.type && !q.schema"
+            variant="outline"
+            class="inline-flex items-center gap-2"
+            @click="openCreate('schema')"
+          >
+            <Icon name="ri:add-line" class="size-4" />
+            <span>Create Schema</span>
+          </Button>
 
-        <!-- Create Metalake button lives in the metalake list header (Gravitino-like) -->
+          <Button
+            v-if="q.schema && q.type && !selectedEntityName && currentEntityKind"
+            variant="outline"
+            class="inline-flex items-center gap-2"
+            @click="openCreate(currentEntityKind)"
+          >
+            <Icon name="ri:add-line" class="size-4" />
+            <span>Create {{ typeLabel(q.type) }}</span>
+          </Button>
 
-        <Button
-          v-else-if="q.metalake && !q.catalog"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openCreate('catalog')"
-        >
-          <Icon name="ri:add-line" class="size-4" />
-          <span>Create Catalog</span>
-        </Button>
-        <Button
-          v-if="q.metalake && !q.catalog"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="() => (q.metalake ? tryOpenMetalakeEdit(q.metalake) : undefined)"
-        >
-          <Icon name="ri:edit-line" class="size-4" />
-          <span>Edit Metalake</span>
-        </Button>
-        <Button
-          v-if="q.metalake && !q.catalog"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openDelete('metalake')"
-        >
-          <Icon name="ri:delete-bin-5-line" class="size-4" />
-          <span>Delete Metalake</span>
-        </Button>
 
-        <Button
-          v-if="q.catalog && q.type && !q.schema"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openCreate('schema')"
-        >
-          <Icon name="ri:add-line" class="size-4" />
-          <span>Create Schema</span>
-        </Button>
-        <Button
-          v-if="q.catalog && q.type && !q.schema"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openEdit('catalog')"
-        >
-          <Icon name="ri:edit-line" class="size-4" />
-          <span>Edit Catalog</span>
-        </Button>
-        <Button
-          v-if="q.catalog && q.type && !q.schema"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openDelete('catalog')"
-        >
-          <Icon name="ri:delete-bin-5-line" class="size-4" />
-          <span>Delete Catalog</span>
-        </Button>
 
-        <Button
-          v-if="q.schema && q.type && !selectedEntityName && currentEntityKind"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openCreate(currentEntityKind)"
-        >
-          <Icon name="ri:add-line" class="size-4" />
-          <span>Create {{ typeLabel(q.type) }}</span>
-        </Button>
-        <Button
-          v-if="q.schema && q.type && !selectedEntityName"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openEdit('schema')"
-        >
-          <Icon name="ri:edit-line" class="size-4" />
-          <span>Edit Schema</span>
-        </Button>
-        <Button
-          v-if="q.schema && q.type && !selectedEntityName"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openDelete('schema')"
-        >
-          <Icon name="ri:delete-bin-5-line" class="size-4" />
-          <span>Delete Schema</span>
-        </Button>
 
-        <Button
-          v-if="selectedEntityName && currentEntityKind && !(q.type === 'model' && q.version)"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openEdit(currentEntityKind)"
-        >
-          <Icon name="ri:edit-line" class="size-4" />
-          <span>Edit {{ typeLabel(q.type) }}</span>
-        </Button>
-        <Button
-          v-if="selectedEntityName && currentEntityKind && !(q.type === 'model' && q.version)"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openDelete(currentEntityKind)"
-        >
-          <Icon name="ri:delete-bin-5-line" class="size-4" />
-          <span>Delete {{ typeLabel(q.type) }}</span>
-        </Button>
+          <Button
+            v-if="q.type === 'model' && selectedEntityName && !q.version"
+            variant="outline"
+            class="inline-flex items-center gap-2"
+            @click="openCreate('version')"
+          >
+            <Icon name="ri:git-branch-line" class="size-4" />
+            <span>Link Version</span>
+          </Button>
+          <Button
+            v-if="q.type === 'model' && q.version"
+            variant="outline"
+            class="inline-flex items-center gap-2"
+            @click="openEdit('version')"
+          >
+            <Icon name="ri:edit-line" class="size-4" />
+            <span>Edit Version</span>
+          </Button>
+          <Button
+            v-if="q.type === 'model' && q.version"
+            variant="outline"
+            class="inline-flex items-center gap-2"
+            @click="openDelete('version')"
+          >
+            <Icon name="ri:delete-bin-5-line" class="size-4" />
+            <span>Delete Version</span>
+          </Button>
 
-        <Button
-          v-if="q.type === 'model' && selectedEntityName && !q.version"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openCreate('version')"
-        >
-          <Icon name="ri:git-branch-line" class="size-4" />
-          <span>Link Version</span>
-        </Button>
-        <Button
-          v-if="q.type === 'model' && q.version"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openEdit('version')"
-        >
-          <Icon name="ri:edit-line" class="size-4" />
-          <span>Edit Version</span>
-        </Button>
-        <Button
-          v-if="q.type === 'model' && q.version"
-          variant="outline"
-          class="inline-flex items-center gap-2"
-          @click="openDelete('version')"
-        >
-          <Icon name="ri:delete-bin-5-line" class="size-4" />
-          <span>Delete Version</span>
-        </Button>
-
-        <Button variant="outline" class="inline-flex items-center gap-2" @click="refreshAll">
-          <Icon name="ri:refresh-line" class="size-4" />
-          <span>Refresh</span>
-        </Button>
+          <Button variant="outline" class="inline-flex items-center gap-2" @click="refreshAll">
+            <Icon name="ri:refresh-line" class="size-4" />
+            <span>Refresh</span>
+          </Button>
+        </template>
       </template>
     </PageHeader>
 
@@ -1809,25 +2564,14 @@ const confirmDelete = async () => {
       <!-- Left Tree -->
       <Card class="shadow-none overflow-hidden">
         <CardContent class="p-0">
-          <div class="p-4 space-y-3 border-b">
-            <div class="flex items-center justify-between gap-2">
-              <Button variant="ghost" size="sm" class="inline-flex items-center gap-1" @click="goToMetalakeList">
-                <Icon name="ri:arrow-left-line" class="size-4" />
-                <span>Metalakes</span>
-              </Button>
-              <div class="w-[180px]">
-                <Selector v-model="currentMetalake" :options="metalakeOptions" placeholder="Metalake" />
-              </div>
-            </div>
-            <div v-if="metalakeDetail?.comment" class="text-xs text-muted-foreground truncate">
+          <div v-if="metalakeDetail?.comment" class="p-4 border-b">
+            <div class="text-xs text-muted-foreground truncate">
               {{ metalakeDetail.comment }}
             </div>
           </div>
 
           <ScrollArea class="h-[calc(100vh-260px)]">
             <div class="p-2">
-              <div class="px-2 py-1 text-xs text-muted-foreground">Catalogs</div>
-
               <div v-if="isLoading" class="p-3 text-sm text-muted-foreground">Loading…</div>
 
               <div v-else class="space-y-1">
@@ -1907,48 +2651,33 @@ const confirmDelete = async () => {
       <Card class="shadow-none flex-1">
         <CardContent class="py-4">
           <div class="flex items-center justify-between gap-3 mb-4">
-            <div class="min-w-0">
-              <div class="text-sm text-muted-foreground">{{ breadcrumbText }}</div>
-            </div>
-            <div class="flex items-center gap-2">
-              <Button v-if="currentLevel === 'metalake'" variant="outline" class="inline-flex items-center gap-2" @click="openCreate('catalog')">
-                <Icon name="ri:add-line" class="size-4" />
-                <span>Create Catalog</span>
-              </Button>
-              <Button v-else-if="currentLevel === 'catalog'" variant="outline" class="inline-flex items-center gap-2" @click="openCreate('schema')">
-                <Icon name="ri:add-line" class="size-4" />
-                <span>Create Schema</span>
-              </Button>
-              <Button
-                v-else-if="currentLevel === 'schema' && currentEntityKind"
-                variant="outline"
-                class="inline-flex items-center gap-2"
-                @click="openCreate(currentEntityKind)"
-              >
-                <Icon name="ri:add-line" class="size-4" />
-                <span>Create {{ typeLabel(q.type) }}</span>
-              </Button>
-              <Button
-                v-else-if="currentLevel === 'entity' && q.type === 'model' && selectedEntityName"
-                variant="outline"
-                class="inline-flex items-center gap-2"
-                @click="openCreate('version')"
-              >
-                <Icon name="ri:add-line" class="size-4" />
-                <span>Create Version</span>
-              </Button>
-
-              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="copyIdentity">
-                <Icon name="ri:file-copy-line" class="size-4" />
-                <span>Copy</span>
-              </Button>
+            <div class="min-w-0 flex items-center gap-1 flex-wrap">
+              <template v-for="(item, index) in breadcrumbItems" :key="index">
+                <button
+                  class="text-sm text-primary hover:underline cursor-pointer"
+                  @click="navigateToBreadcrumb(item.params)"
+                >
+                  {{ item.label }}
+                </button>
+                <span v-if="index < breadcrumbItems.length - 1" class="text-sm text-muted-foreground">/</span>
+              </template>
             </div>
           </div>
 
           <Tabs :default-value="rightTabsDefault">
-            <TabsList>
-              <TabsTrigger value="list">{{ listTabLabel }}</TabsTrigger>
-              <TabsTrigger value="details">Details</TabsTrigger>
+            <TabsList class="w-full justify-start rounded-none bg-transparent p-0 border-b">
+              <TabsTrigger
+                value="list"
+                class="rounded-none px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
+              >
+                {{ listTabLabel }}
+              </TabsTrigger>
+              <TabsTrigger
+                value="details"
+                class="rounded-none px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
+              >
+                Details
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="list" class="mt-4">
@@ -1961,25 +2690,26 @@ const confirmDelete = async () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Name</TableHead>
-                        <TableHead class="w-[140px]">Type</TableHead>
-                        <TableHead class="w-[120px]">In use</TableHead>
-                        <TableHead class="w-[120px]">Actions</TableHead>
+                        <TableHead class="w-[120px]">In-use</TableHead>
+                        <TableHead class="w-[180px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow v-for="c in catalogs" :key="`${c.name}:${c.type}`">
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            class="px-2"
-                            :disabled="getResourceInUse(c) === false"
-                            @click="goToCatalog(q.metalake || '', c.name, c.type)"
-                          >
-                            <span class="font-medium">{{ c.name }}</span>
-                          </Button>
+                          <div class="flex items-center gap-3">
+                            <button
+                              class="inline-flex items-center gap-2 min-w-0 rounded px-2 py-1 hover:bg-muted/40 transition cursor-pointer disabled:cursor-not-allowed"
+                              :disabled="getResourceInUse(c) === false"
+                              @click="goToCatalog(q.metalake || '', c.name, c.type)"
+                            >
+                              <Icon name="ri:folder-2-line" class="size-4 text-muted-foreground" />
+                              <span class="font-medium truncate">{{ c.name }}</span>
+                              <Badge variant="secondary" class="ml-1">{{ typeLabel(c.type) }}</Badge>
+                            </button>
+                          </div>
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">{{ typeLabel(c.type) }}</TableCell>
+
                         <TableCell>
                           <Switch
                             :key="`list-catalog-${c.name}-${isResourceInUse(c)}`"
@@ -1988,12 +2718,23 @@ const confirmDelete = async () => {
                             @update:checked="(v: boolean) => toggleCatalogInUse(c.name, v)"
                           />
                         </TableCell>
-                        <TableCell>
-                          <div class="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" @click="() => { goToCatalog(q.metalake || '', c.name, c.type); openEdit('catalog') }">
+
+                        <TableCell class="text-right">
+                          <div class="inline-flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              :disabled="getResourceInUse(c) === false"
+                              @click="() => openCatalogEdit(q.metalake || '', c.name)"
+                            >
                               <Icon name="ri:edit-line" class="size-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" @click="() => { goToCatalog(q.metalake || '', c.name, c.type); openDelete('catalog') }">
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              :disabled="getResourceInUse(c) === true"
+                              @click="() => { goToCatalog(q.metalake || '', c.name, c.type); openDelete('catalog', { metalake: q.metalake, catalog: c.name, type: c.type }) }"
+                            >
                               <Icon name="ri:delete-bin-5-line" class="size-4" />
                             </Button>
                           </div>
@@ -2148,49 +2889,68 @@ const confirmDelete = async () => {
             </TabsContent>
 
             <TabsContent value="details" class="mt-4">
-              <div class="space-y-3">
-                <div class="flex items-center justify-between">
-                  <div class="text-sm font-medium">Details</div>
-                  <div class="inline-flex items-center gap-2">
-                    <span class="text-sm text-muted-foreground">In use</span>
-                    <span class="text-[10px] font-bold" :class="isResourceInUse(metalakeDetail || currentMetalakeObj) ? 'text-blue-600' : 'text-slate-400'">
-                      {{ isResourceInUse(metalakeDetail || currentMetalakeObj) ? 'TRUE' : 'FALSE' }}
-                    </span>
-                    <Switch
-                      v-if="currentLevel === 'metalake'"
-                      :key="`metalake-${q.metalake}-${isResourceInUse(metalakeDetail || currentMetalakeObj)}`"
-                      :checked="isResourceInUse(metalakeDetail || currentMetalakeObj)"
-                      :disabled="false"
-                      @update:checked="toggleMetalakeInUse"
-                    />
-                    <Switch
-                      v-else-if="currentLevel === 'catalog'"
-                      :checked="isResourceInUse(catalogDetail || currentCatalogObj)"
-                      :disabled="isLoading"
-                      @update:checked="(v: boolean) => toggleCatalogInUse(q.catalog || '', v)"
-                    />
+              <div v-if="detailsRows.length === 0" class="text-sm text-muted-foreground">No details loaded</div>
+              <div v-else class="space-y-6">
+                <!-- Type and Provider in first row -->
+                <div class="grid grid-cols-2 gap-6">
+                  <div v-if="detailsTarget?.type" class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Type</div>
+                    <div class="text-sm text-foreground">{{ detailsTarget.type }}</div>
+                  </div>
+                  <div v-if="detailsTarget?.provider" class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Provider</div>
+                    <div class="text-sm text-foreground">{{ detailsTarget.provider }}</div>
                   </div>
                 </div>
 
-                <div class="rounded-md border p-3 bg-muted/20">
-                  <div v-if="detailsRows.length === 0" class="text-sm text-muted-foreground">No details loaded</div>
-                  <div v-else class="space-y-2">
-                    <div v-for="row in detailsRows" :key="row.label" class="flex items-start justify-between gap-4">
-                      <div class="text-xs text-muted-foreground shrink-0">{{ row.label }}</div>
-                      <div class="text-sm font-medium text-right break-all">{{ row.value }}</div>
-                    </div>
-                  </div>
+                <!-- Comment full width -->
+                <div class="col-span-1">
+                  <div class="text-sm text-muted-foreground font-medium mb-2">Comment</div>
+                  <div class="text-sm text-foreground break-words">{{ pickFirstString(detailsTarget?.comment) || 'N/A' }}</div>
+                </div>
 
-                  <div class="mt-3 flex items-center justify-end">
-                    <Button variant="ghost" size="sm" class="inline-flex items-center gap-2" @click="showRawDetailsJson = !showRawDetailsJson">
-                      <Icon name="ri:code-s-slash-line" class="size-4" />
-                      <span>{{ showRawDetailsJson ? 'Hide raw JSON' : 'Show raw JSON' }}</span>
-                    </Button>
+                <!-- Created and Last Modified info -->
+                <div class="grid grid-cols-2 gap-6">
+                  <div class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Created by</div>
+                    <div class="text-sm text-foreground">{{ getCreatedBy(detailsTarget) || 'N/A' }}</div>
                   </div>
+                  <div class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Created at</div>
+                    <div class="text-sm text-foreground">{{ getCreatedAt(detailsTarget) || 'N/A' }}</div>
+                  </div>
+                </div>
 
-                  <pre v-if="showRawDetailsJson" class="mt-2 text-xs rounded-md bg-muted/40 border p-3 overflow-auto max-h-[420px]">{{
-                    JSON.stringify(versionDetail || entityDetail || schemaDetail || catalogDetail || metalakeDetail, null, 2)
-                  }}</pre>
+                <div class="grid grid-cols-2 gap-6">
+                  <div class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Last modified by</div>
+                    <div class="text-sm text-foreground">{{ getLastModifiedBy(detailsTarget) || 'N/A' }}</div>
+                  </div>
+                  <div class="col-span-1">
+                    <div class="text-sm text-muted-foreground font-medium mb-2">Last modified at</div>
+                    <div class="text-sm text-foreground">{{ getLastModifiedAt(detailsTarget) || 'N/A' }}</div>
+                  </div>
+                </div>
+
+                <!-- Properties Section (full width, always show) -->
+                <div class="col-span-1">
+                  <div class="text-sm text-muted-foreground font-medium mb-2">Properties</div>
+                  <div class="border rounded-md overflow-hidden">
+                    <Table class="text-xs">
+                      <TableHeader class="bg-muted">
+                        <TableRow class="border-b">
+                          <TableHead class="py-2 px-3 text-left font-medium">Key</TableHead>
+                          <TableHead class="py-2 px-3 text-left font-medium">Value</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <TableRow v-for="[key, value] in Object.entries(detailsTarget?.properties || {})" :key="key" class="border-b last:border-0 hover:bg-muted/50">
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-xs" :title="key">{{ key }}</TableCell>
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-sm" :title="String(value)">{{ String(value) }}</TableCell>
+                        </TableRow>
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </div>
             </TabsContent>
@@ -2228,10 +2988,9 @@ const confirmDelete = async () => {
                 @click="addMetalakePropRow"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add</span>
+                <span>Add Property</span>
               </Button>
             </div>
-
             <div class="space-y-2">
               <div
                 v-for="(row, idx) in createMetalakeProps"
@@ -2253,18 +3012,412 @@ const confirmDelete = async () => {
             </div>
           </div>
         </div>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Create Catalog (Gravitino-style structured form with dynamic providers) -->
+    <Dialog v-model:open="createCatalogOpen">
+      <DialogContent class="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Catalog</DialogTitle>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name <span class="text-red-500">*</span></div>
+            <Input 
+              v-model="createCatalogName" 
+              placeholder="Name" 
+              :class="{ 'border-red-500': !createCatalogName.trim() }"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Type <span class="text-red-500">*</span></div>
+            <select v-model="createCatalogType" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="relational">Relational</option>
+              <option value="fileset">Fileset</option>
+              <option value="messaging">Messaging</option>
+              <option value="model">Model</option>
+            </select>
+          </div>
+
+          <!-- Provider selection only for relational and messaging -->
+          <div v-if="showProviderSelect" class="space-y-2">
+            <div class="text-sm font-medium">Provider <span class="text-red-500">*</span></div>
+            <select 
+              v-model="createCatalogProvider" 
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              :class="{ 'border-red-500': !createCatalogProvider }"
+            >
+              <option v-for="p in availableProviders" :key="p.value" :value="p.value">
+                {{ p.label }}
+              </option>
+            </select>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="createCatalogComment" placeholder="Comment" />
+          </div>
+
+          <!-- Properties section -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addCatalogPropRow">
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+
+            <!-- Provider-specific properties -->
+            <template v-for="(prop, idx) in createCatalogProps" :key="idx">
+              <div v-if="!shouldHideProp(prop)" class="space-y-1">
+                <div class="flex items-center gap-2">
+                  <!-- Key field (disabled for required props) -->
+                  <Input
+                    v-model="prop.key"
+                    :disabled="prop.required"
+                    placeholder="Key"
+                    class="flex-1"
+                    :class="{ 'border-red-500': !prop.key?.trim() }"
+                  />
+                  
+                  <!-- Value field: select or input -->
+                  <template v-if="prop.select && prop.select.length > 0">
+                    <select
+                      v-model="prop.value"
+                      class="flex h-10 flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
+                      :class="{ 'border-red-500': prop.required && !prop.value?.trim() }"
+                    >
+                      <option v-for="opt in prop.select" :key="opt" :value="opt">{{ opt }}</option>
+                    </select>
+                  </template>
+                  <template v-else>
+                    <Input
+                      v-model="prop.value"
+                      :placeholder="prop.required ? 'Required' : 'Value'"
+                      :type="prop.key === 'jdbc-password' ? 'password' : 'text'"
+                      class="flex-1"
+                      :class="{ 'border-red-500': prop.required && !prop.value?.trim() }"
+                    />
+                  </template>
+                  
+                  <!-- Remove button for non-required props -->
+                  <Button 
+                    v-if="!prop.required"
+                    variant="ghost" 
+                    size="sm" 
+                    @click="removeCatalogPropRow(idx)"
+                  >
+                    <Icon name="ri:delete-bin-5-line" class="size-4" />
+                  </Button>
+                  <div v-else class="w-8" />
+                </div>
+                
+                <!-- Description text (red if required and empty) -->
+                <div 
+                  v-if="prop.description"
+                  class="text-xs pl-1"
+                  :class="prop.required && !prop.value?.trim() ? 'text-red-500' : 'text-muted-foreground'"
+                >
+                  {{ prop.description }}
+                </div>
+              </div>
+            </template>
+            
+          </div>
+        </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createMetalakeOpen = false">Cancel</Button>
-          <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitCreateMetalake">
-            <Icon name="ri:add-line" class="size-4" />
-            <span>Create</span>
-          </Button>
+          <Button variant="outline" @click="createCatalogOpen = false">Cancel</Button>
+          <Button :disabled="isLoading || !isCatalogFormValid" @click="submitCreateCatalog">Create</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
 
-    <!-- Edit Metalake (structured form) -->
+    <!-- Create Schema (Gravitino-style structured form) -->
+    <Dialog v-model:open="createSchemaOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create Schema</DialogTitle>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="createSchemaName" placeholder="Name" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="createSchemaComment" placeholder="Comment" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addSchemaPropRow">
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+            <div class="space-y-2">
+              <div v-for="(row, idx) in createSchemaProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input v-model="row.key" placeholder="Key" />
+                <Input v-model="row.value" placeholder="Value" />
+                <Button variant="ghost" size="sm" :disabled="createSchemaProps.length <= 1" @click="removeSchemaPropRow(idx)">
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="createSchemaOpen = false">CANCEL</Button>
+          <Button :disabled="isLoading" @click="submitCreateSchema">CREATE</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Create Table (Gravitino-style structured form) -->
+    <Dialog v-model:open="createTableOpen">
+      <DialogContent class="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Create Table</DialogTitle>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="createTableName" placeholder="Name" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="createTableComment" placeholder="Comment" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Columns</div>
+            <div class="space-y-2">
+              <div v-for="(col, idx) in createTableColumns" :key="idx" class="space-y-2">
+                <div class="grid grid-cols-[2fr_2fr_1fr_2fr_auto] gap-2 items-start">
+                  <div>
+                    <Input v-model="col.name" placeholder="Name" :class="{ 'border-red-500': !col.name.trim() }" />
+                    <div v-if="!col.name.trim()" class="text-xs text-red-500 mt-1">Name is required</div>
+                  </div>
+                  <div>
+                    <select 
+                      v-model="col.type" 
+                      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
+                      :class="{ 'border-red-500': !col.type }"
+                    >
+                      <option value="">Type</option>
+                      <option v-for="t in getColumnTypesForProvider(catalogs.find(c => c.name === q.catalog)?.provider)" :key="t" :value="t">{{ t }}</option>
+                    </select>
+                    <div v-if="!col.type" class="text-xs text-red-500 mt-1">Type is required</div>
+                  </div>
+                  <div class="flex items-center gap-2 h-10">
+                    <input type="checkbox" v-model="col.nullable" class="size-4" />
+                    <span class="text-sm">Nullable</span>
+                  </div>
+                  <Input v-model="col.comment" placeholder="Comment" />
+                  <Button variant="ghost" size="sm" @click="removeTableColumn(idx)" :disabled="createTableColumns.length <= 1">
+                    <Icon name="ri:delete-bin-5-line" class="size-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addTableColumn">
+              <Icon name="ri:add-line" class="size-4" />
+              <span>Add Column</span>
+            </Button>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addTablePropRow">
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+            <div class="space-y-2">
+              <div v-for="(row, idx) in createTableProps" :key="idx" class="space-y-1">
+                <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                  <Input 
+                    v-model="row.key" 
+                    placeholder="Key" 
+                    :disabled="row.disabled || getTablePropInfo(catalogs.find(c => c.name === q.catalog)?.provider).immutable.includes(row.key)"
+                  />
+                  <Input 
+                    v-model="row.value" 
+                    placeholder="Value" 
+                    :class="{ 'border-red-500': row.required && !row.value }"
+                    :disabled="row.disabled"
+                  />
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    :disabled="createTableProps.length <= 1 || row.disabled" 
+                    @click="removeTablePropRow(idx)"
+                  >
+                    <Icon name="ri:delete-bin-5-line" class="size-4" />
+                  </Button>
+                </div>
+                <div v-if="row.description" class="text-xs" :class="row.required && !row.value ? 'text-red-500' : 'text-muted-foreground'">
+                  {{ row.description }} {{ row.required && !row.value ? '(Required)' : '' }}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="createTableOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" @click="submitCreateTable">Create</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Create Fileset (Gravitino-style structured form) -->
+    <Dialog v-model:open="createFilesetOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Create Fileset</DialogTitle>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="createFilesetName" placeholder="Name" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Type</div>
+            <select v-model="createFilesetType" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="Managed">Managed</option>
+              <option value="External">External</option>
+            </select>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Storage Locations</div>
+            <div class="space-y-2">
+              <div v-for="(loc, idx) in createFilesetLocations" :key="idx" class="grid grid-cols-[1fr_1fr] gap-2">
+                <Input v-model="loc.name" placeholder="Name 1" />
+                <Input v-model="loc.location" placeholder="Location 1" />
+              </div>
+            </div>
+            <div class="text-xs text-muted-foreground">
+              It is optional if the fileset is 'Managed' type and a storage location is already specified at the parent catalog or schema level.
+            </div>
+            <div class="text-xs text-muted-foreground">
+              It becomes mandatory if the fileset type is 'External' or no storage location is defined at the parent level.
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="createFilesetComment" placeholder="Comment" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addFilesetPropRow">
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+            <div class="space-y-2">
+              <div v-for="(row, idx) in createFilesetProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input v-model="row.key" placeholder="Key" />
+                <Input v-model="row.value" placeholder="Value" />
+                <Button variant="ghost" size="sm" :disabled="createFilesetProps.length <= 1" @click="removeFilesetPropRow(idx)">
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="createFilesetOpen = false">CANCEL</Button>
+          <Button :disabled="isLoading" @click="submitCreateFileset">CREATE</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+          <!-- Edit Catalog (structured form, Gravitino-like) -->
+          <Dialog v-model:open="editCatalogOpen">
+            <DialogContent class="sm:max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Edit Catalog</DialogTitle>
+                <DialogDescription>Update catalog metadata and properties.</DialogDescription>
+              </DialogHeader>
+
+              <div class="space-y-4">
+                <div class="space-y-2">
+                  <div class="text-sm font-medium">Name</div>
+                  <Input v-model="editCatalogName" placeholder="catalog_name" />
+                </div>
+
+                <div class="space-y-2">
+                  <div class="text-sm font-medium">Comment</div>
+                  <Textarea v-model="editCatalogComment" placeholder="Optional description" />
+                </div>
+
+                <div class="space-y-2">
+                  <div class="flex items-center justify-between gap-2">
+                    <div class="text-sm font-medium">Properties</div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="inline-flex items-center gap-2"
+                      @click="() => (editCatalogProps = [...editCatalogProps, { key: '', value: '' }])"
+                    >
+                      <Icon name="ri:add-line" class="size-4" />
+                      <span>Add Property</span>
+                    </Button>
+                  </div>
+
+                  <div class="space-y-2">
+                    <div
+                      v-for="(row, idx) in editCatalogProps"
+                      :key="idx"
+                      class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
+                    >
+                      <Input v-model="row.key" placeholder="Key" :disabled="row.key === 'in-use' || row.disabled" />
+                      <Input v-model="row.value" placeholder="Value" :disabled="row.key === 'in-use' || row.disabled" />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        class="justify-self-start"
+                        :disabled="editCatalogProps.length <= 1 || row.key === 'in-use' || row.disabled"
+                        @click="() => (editCatalogProps = editCatalogProps.filter((_, i) => i !== idx))"
+                      >
+                        <Icon name="ri:delete-bin-5-line" class="size-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" @click="editCatalogOpen = false">Cancel</Button>
+                <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditCatalog">
+                  <Icon name="ri:save-3-line" class="size-4" />
+                  <span>Update</span>
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+    <!-- Edit Metalake Dialog -->
     <Dialog v-model:open="editMetalakeOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
