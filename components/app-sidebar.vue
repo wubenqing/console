@@ -145,7 +145,11 @@ const getLabel = (item: NavItem) => t(item.label)
                   >
                     <SidebarMenuItem>
                       <CollapsibleTrigger as-child>
-                        <SidebarMenuButton :is-active="isRouteActive(item)" :tooltip="getLabel(item)" class="gap-3 overflow-hidden">
+                        <SidebarMenuButton
+                          :is-active="isRouteActive(item)"
+                          :tooltip="getLabel(item)"
+                          class="gap-3 overflow-hidden"
+                        >
                           <Icon v-if="item.icon" :name="item.icon" class="size-4 shrink-0" />
                           <span class="flex-1 truncate overflow-hidden">{{ getLabel(item) }}</span>
                           <Icon

@@ -39,6 +39,15 @@ export default defineNuxtConfig({
   // Nuxt automatically reads the files in the plugins/ directory
   plugins: [],
   runtimeConfig: {
+    volumeCatalog: {
+      host: process.env.VOLUME_CATALOG_DB_HOST || '',
+      port: Number(process.env.VOLUME_CATALOG_DB_PORT) || 5432,
+      user: process.env.VOLUME_CATALOG_DB_USER || '',
+      password: process.env.VOLUME_CATALOG_DB_PASSWORD || '',
+      database: process.env.VOLUME_CATALOG_DB_NAME || '',
+      schema: process.env.VOLUME_CATALOG_DB_SCHEMA || 'public',
+      table: process.env.VOLUME_CATALOG_DB_TABLE || 'object_table',
+    },
     public: {
       session: {
         // 临时凭证有效期
@@ -176,6 +185,6 @@ export default defineNuxtConfig({
     componentDir: './components/ui',
   },
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss() as any],
   },
 })

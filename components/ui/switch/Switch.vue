@@ -30,7 +30,7 @@ const switchValue = computed({
     // Emit both events for compatibility
     emits('update:checked', val)
     emits('update:modelValue', val)
-  }
+  },
 })
 </script>
 

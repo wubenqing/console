@@ -4,9 +4,7 @@
       <h1 class="text-2xl font-bold">告警</h1>
     </PageHeader>
 
-    <div class="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-      告警页面建设中。
-    </div>
+    <div class="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">告警页面建设中。</div>
   </Page>
 </template>
 

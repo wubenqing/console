@@ -30,8 +30,7 @@ export const useGravitino = createSharedComposable(() => {
   const getMetalakes = () => fetcher<{ metalakes: any[] }>('/metalakes?details=true')
   const getMetalake = (name: string) => fetcher<{ metalake: any }>(`/metalakes/${enc(name)}`)
   const createMetalake = (data: any) => fetcher('/metalakes', { method: 'POST', body: data })
-  const updateMetalake = (name: string, data: any) =>
-    fetcher(`/metalakes/${enc(name)}`, { method: 'PUT', body: data })
+  const updateMetalake = (name: string, data: any) => fetcher(`/metalakes/${enc(name)}`, { method: 'PUT', body: data })
   const deleteMetalake = (name: string, force = false) =>
     fetcher(`/metalakes/${enc(name)}?force=${force}`, { method: 'DELETE' })
 
@@ -77,10 +76,9 @@ export const useGravitino = createSharedComposable(() => {
     })
 
   const deleteSchema = (metalake: string, catalog: string, schema: string, cascade = false) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}?cascade=${cascade}`,
-      { method: 'DELETE' }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}?cascade=${cascade}`, {
+      method: 'DELETE',
+    })
 
   // --- Tables ---
   const getTables = (metalake: string, catalog: string, schema: string) =>
@@ -100,10 +98,10 @@ export const useGravitino = createSharedComposable(() => {
     })
 
   const updateTable = (metalake: string, catalog: string, schema: string, table: string, data: any) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/tables/${enc(table)}`,
-      { method: 'PUT', body: data }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/tables/${enc(table)}`, {
+      method: 'PUT',
+      body: data,
+    })
 
   const deleteTable = (metalake: string, catalog: string, schema: string, table: string, purge = false) =>
     fetcher(
@@ -149,16 +147,15 @@ export const useGravitino = createSharedComposable(() => {
     })
 
   const updateFileset = (metalake: string, catalog: string, schema: string, fileset: string, data: any) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/filesets/${enc(fileset)}`,
-      { method: 'PUT', body: data }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/filesets/${enc(fileset)}`, {
+      method: 'PUT',
+      body: data,
+    })
 
   const deleteFileset = (metalake: string, catalog: string, schema: string, fileset: string) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/filesets/${enc(fileset)}`,
-      { method: 'DELETE' }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/filesets/${enc(fileset)}`, {
+      method: 'DELETE',
+    })
 
   // --- Topics ---
   const getTopics = (metalake: string, catalog: string, schema: string) =>
@@ -178,16 +175,15 @@ export const useGravitino = createSharedComposable(() => {
     })
 
   const updateTopic = (metalake: string, catalog: string, schema: string, topic: string, data: any) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/topics/${enc(topic)}`,
-      { method: 'PUT', body: data }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/topics/${enc(topic)}`, {
+      method: 'PUT',
+      body: data,
+    })
 
   const deleteTopic = (metalake: string, catalog: string, schema: string, topic: string) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/topics/${enc(topic)}`,
-      { method: 'DELETE' }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/topics/${enc(topic)}`, {
+      method: 'DELETE',
+    })
 
   // --- Models & Versions ---
   const getModels = (metalake: string, catalog: string, schema: string) =>
@@ -207,16 +203,15 @@ export const useGravitino = createSharedComposable(() => {
     })
 
   const updateModel = (metalake: string, catalog: string, schema: string, model: string, data: any) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/models/${enc(model)}`,
-      { method: 'PUT', body: data }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/models/${enc(model)}`, {
+      method: 'PUT',
+      body: data,
+    })
 
   const deleteModel = (metalake: string, catalog: string, schema: string, model: string) =>
-    fetcher(
-      `/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/models/${enc(model)}`,
-      { method: 'DELETE' }
-    )
+    fetcher(`/metalakes/${enc(metalake)}/catalogs/${enc(catalog)}/schemas/${enc(schema)}/models/${enc(model)}`, {
+      method: 'DELETE',
+    })
 
   const getModelVersions = (metalake: string, catalog: string, schema: string, model: string) =>
     fetcher<{ identifiers: any[] }>(

@@ -3,9 +3,7 @@
     <PageHeader>
       <h1 class="text-2xl font-bold">目录管理</h1>
     </PageHeader>
-    <div class="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">
-      目录管理页面建设中。
-    </div>
+    <div class="rounded-lg border bg-muted/30 p-6 text-sm text-muted-foreground">目录管理页面建设中。</div>
   </Page>
 </template>
 <script lang="ts" setup>

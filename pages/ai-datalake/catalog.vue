@@ -93,9 +93,12 @@ const getResourceInUse = (resource: any): boolean | undefined => {
 
   // 1. Try to find 'in-use' in various possible property locations
   const propRaw = getPropertyValue(resource, 'in-use')
-  
+
   // 2. Extra check: sometimes backend doesn't nest it under properties in different contexts
-  const directProp = resource?.properties?.['in-use'] || resource?.metalake?.properties?.['in-use'] || resource?.catalog?.properties?.['in-use']
+  const directProp =
+    resource?.properties?.['in-use'] ||
+    resource?.metalake?.properties?.['in-use'] ||
+    resource?.catalog?.properties?.['in-use']
 
   const propParsed = parseInUse(propRaw || directProp)
 
@@ -305,7 +308,13 @@ const goToCatalog = (metalake: string, catalog: string, type: string) => goTo({ 
 const goToSchema = (metalake: string, catalog: string, type: string, schema: string) =>
   goTo({ metalake, catalog, type, schema })
 
-const navigateToBreadcrumb = (params: { metalake?: string; catalog?: string; schema?: string; entity?: string; type?: string }) => {
+const navigateToBreadcrumb = (params: {
+  metalake?: string
+  catalog?: string
+  schema?: string
+  entity?: string
+  type?: string
+}) => {
   const query: any = {}
   if (params.metalake) query.metalake = params.metalake
   if (params.catalog) query.catalog = params.catalog
@@ -402,8 +411,9 @@ const submitCreateMetalake = async () => {
     })
     message.success('Metalake created')
     createMetalakeOpen.value = false
-    await refreshAll()
-    goToMetalake(name)
+    // Only refresh the metalakes list without navigating away
+    const res = await api.getMetalakes()
+    metalakes.value = res.metalakes || []
   } catch (err: any) {
     message.error(err?.message || 'Failed to create metalake')
   } finally {
@@ -527,11 +537,7 @@ const toggleMetalakeInUseFromList = async (metalake: string, next: boolean) => {
       inUse: next,
       properties: { ...(current.properties || {}), 'in-use': String(next) },
     }
-    metalakes.value = [
-      ...metalakes.value.slice(0, idx),
-      updated,
-      ...metalakes.value.slice(idx + 1),
-    ]
+    metalakes.value = [...metalakes.value.slice(0, idx), updated, ...metalakes.value.slice(idx + 1)]
   }
 
   try {
@@ -563,18 +569,13 @@ const toggleCatalogInUse = async (catalogName: string, next: boolean) => {
       inUse: next,
       properties: { ...(current.properties || {}), 'in-use': String(next) },
     }
-    catalogs.value = [
-      ...catalogs.value.slice(0, idx),
-      updated,
-      ...catalogs.value.slice(idx + 1),
-    ]
+    catalogs.value = [...catalogs.value.slice(0, idx), updated, ...catalogs.value.slice(idx + 1)]
   }
 
   try {
     isLoading.value = true
     await api.switchCatalogInUse(metalake, catalogName, next)
     message.success('Updated in-use')
-    await refreshMetalakeContext(metalake)
 
     const { catalog, type } = q.value
     if (!next && catalog === catalogName && type) {
@@ -629,7 +630,6 @@ const removeEditMetalakePropRow = (idx: number) => {
 
 const openMetalakeEdit = async (name: string) => {
   try {
-    isLoading.value = true
     const res = await api.getMetalake(name)
     const metalake = res?.metalake ?? res
     editMetalakeOriginal.value = metalake
@@ -639,8 +639,6 @@ const openMetalakeEdit = async (name: string) => {
     editMetalakeOpen.value = true
   } catch {
     message.error('Failed to load metalake details')
-  } finally {
-    isLoading.value = false
   }
 }
 
@@ -673,10 +671,6 @@ const submitEditMetalake = async () => {
     await api.updateMetalake(original?.name ?? next.name, { updates })
     message.success('Metalake updated')
     editMetalakeOpen.value = false
-    await refreshAll()
-    if (q.value.metalake && q.value.metalake === original?.name && next.name) {
-      goToMetalake(next.name)
-    }
   } catch (err: any) {
     message.error(err?.message || 'Failed to update metalake')
   } finally {
@@ -770,6 +764,12 @@ const refreshSchemaContext = async (metalake: string, catalog: string, type: str
     entityDetail.value = null
     modelVersions.value = []
     versionDetail.value = null
+
+    // Clear tree cache to force reload when user expands the tree
+    const sKey = `${catalog}::${type}::${schema}`
+    treeEntitiesBySchemaKey.value = Object.fromEntries(
+      Object.entries(treeEntitiesBySchemaKey.value).filter(([k]) => k !== sKey)
+    )
   } catch (err: any) {
     message.error('Failed to load schema/entities')
   } finally {
@@ -866,7 +866,6 @@ watch(
       goToMetalakeList()
       return
     }
-
 
     const nextCatalogKey = catalog && type ? `${catalog}::${type}` : undefined
     const nextSchemaKey = schema && nextCatalogKey ? `${nextCatalogKey}::${schema}` : undefined
@@ -1001,9 +1000,7 @@ const typeLabel = (type?: string) => {
   }
 }
 
-const currentLevel = computed<
-  'metalake-list' | 'metalake' | 'catalog' | 'schema' | 'entity' | 'version'
->(() => {
+const currentLevel = computed<'metalake-list' | 'metalake' | 'catalog' | 'schema' | 'entity' | 'version'>(() => {
   if (!q.value.metalake) return 'metalake-list'
   if (q.value.metalake && !q.value.catalog) return 'metalake'
   if (q.value.catalog && q.value.type && !q.value.schema) return 'catalog'
@@ -1041,7 +1038,7 @@ const detailsRows = computed(() => {
   if (currentLevel.value === 'catalog') {
     const type = pickFirstString(target?.type)
     if (type) rows.push({ label: 'Type', value: typeLabel(type) })
-    
+
     const provider = pickFirstString(target?.provider)
     if (provider) rows.push({ label: 'Provider', value: provider })
   }
@@ -1088,36 +1085,45 @@ const detailsRows = computed(() => {
 const showRawDetailsJson = ref(false)
 
 const breadcrumbItems = computed(() => {
-  const items: Array<{ label: string; params: { metalake?: string; catalog?: string; schema?: string; entity?: string; type?: string } }> = []
-  
+  const items: Array<{
+    label: string
+    params: { metalake?: string; catalog?: string; schema?: string; entity?: string; type?: string }
+  }> = []
+
   if (q.value.metalake) {
     items.push({
       label: q.value.metalake,
-      params: { metalake: q.value.metalake }
+      params: { metalake: q.value.metalake },
     })
   }
-  
+
   if (q.value.catalog) {
     items.push({
       label: q.value.catalog,
-      params: { metalake: q.value.metalake, catalog: q.value.catalog, type: q.value.type }
+      params: { metalake: q.value.metalake, catalog: q.value.catalog, type: q.value.type },
     })
   }
-  
+
   if (q.value.schema) {
     items.push({
       label: q.value.schema,
-      params: { metalake: q.value.metalake, catalog: q.value.catalog, schema: q.value.schema, type: q.value.type }
+      params: { metalake: q.value.metalake, catalog: q.value.catalog, schema: q.value.schema, type: q.value.type },
     })
   }
-  
+
   if (selectedEntityName.value) {
     items.push({
       label: selectedEntityName.value,
-      params: { metalake: q.value.metalake, catalog: q.value.catalog, schema: q.value.schema, entity: selectedEntityName.value, type: q.value.type }
+      params: {
+        metalake: q.value.metalake,
+        catalog: q.value.catalog,
+        schema: q.value.schema,
+        entity: selectedEntityName.value,
+        type: q.value.type,
+      },
     })
   }
-  
+
   return items
 })
 
@@ -1219,13 +1225,7 @@ const loadFilesetFiles = async () => {
 
   try {
     filesetFilesLoading.value = true
-    const res: any = await api.listFilesetFiles(
-      metalake,
-      catalog,
-      schema,
-      fileset,
-      filesetFilesPath.value || '/'
-    )
+    const res: any = await api.listFilesetFiles(metalake, catalog, schema, fileset, filesetFilesPath.value || '/')
     const files = res?.files ?? res?.fileInfos ?? res?.items ?? []
     filesetFiles.value = Array.isArray(files) ? files : []
   } catch (err: any) {
@@ -1275,15 +1275,7 @@ const currentEntityKind = computed<ResourceKind | null>(() => {
   }
 })
 
-type ResourceKind =
-  | 'metalake'
-  | 'catalog'
-  | 'schema'
-  | 'table'
-  | 'fileset'
-  | 'topic'
-  | 'model'
-  | 'version'
+type ResourceKind = 'metalake' | 'catalog' | 'schema' | 'table' | 'fileset' | 'topic' | 'model' | 'version'
 
 const editOpen = ref(false)
 const editTitle = ref('')
@@ -1374,88 +1366,198 @@ const providers: ProviderDef[] = [
       { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:9030' },
       { key: 'jdbc-user', value: '', required: true },
       { key: 'jdbc-password', value: '', required: true },
-    ]
+    ],
   },
   {
     label: 'Apache Hive',
     value: 'hive',
-    defaultProps: [
-      { key: 'metastore.uris', value: '', required: true, description: 'The Apache Hive metastore URIs' },
-    ]
+    defaultProps: [{ key: 'metastore.uris', value: '', required: true, description: 'The Apache Hive metastore URIs' }],
   },
   {
     label: 'Apache Hudi',
     value: 'lakehouse-hudi',
     defaultProps: [
-      { key: 'catalog-backend', value: 'hms', defaultValue: 'hms', required: true, select: ['hms'], description: 'Apache Hudi catalog type choose properties' },
+      {
+        key: 'catalog-backend',
+        value: 'hms',
+        defaultValue: 'hms',
+        required: true,
+        select: ['hms'],
+        description: 'Apache Hudi catalog type choose properties',
+      },
       { key: 'uri', value: '', required: true, description: 'Apache Hudi catalog uri config' },
-    ]
+    ],
   },
   {
     label: 'Apache Iceberg',
     value: 'lakehouse-iceberg',
     defaultProps: [
-      { key: 'catalog-backend', value: 'hive', defaultValue: 'hive', required: true, select: ['hive', 'jdbc', 'rest'], description: 'Apache Iceberg catalog type choose properties' },
+      {
+        key: 'catalog-backend',
+        value: 'hive',
+        defaultValue: 'hive',
+        required: true,
+        select: ['hive', 'jdbc', 'rest'],
+        description: 'Apache Iceberg catalog type choose properties',
+      },
       { key: 'uri', value: '', required: true, description: 'Apache Iceberg catalog uri config' },
       { key: 'warehouse', value: '', required: false, description: 'Apache Iceberg catalog warehouse config' },
-      { key: 'jdbc-driver', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'], description: '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL' },
+      {
+        key: 'jdbc-driver',
+        value: '',
+        required: true,
+        parentField: 'catalog-backend',
+        hide: ['hive', 'rest'],
+        description:
+          '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL',
+      },
       { key: 'jdbc-user', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'] },
       { key: 'jdbc-password', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'rest'] },
-      { key: 'authentication.type', value: 'simple', defaultValue: 'simple', required: false, description: 'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple', select: ['simple', 'Kerberos'] },
-      { key: 'authentication.kerberos.principal', value: '', required: true, description: 'The principal of the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
-      { key: 'authentication.kerberos.keytab-uri', value: '', required: true, description: 'The URI of The keytab for the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
-    ]
+      {
+        key: 'authentication.type',
+        value: 'simple',
+        defaultValue: 'simple',
+        required: false,
+        description:
+          'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple',
+        select: ['simple', 'Kerberos'],
+      },
+      {
+        key: 'authentication.kerberos.principal',
+        value: '',
+        required: true,
+        description: 'The principal of the Kerberos authentication.',
+        parentField: 'authentication.type',
+        hide: ['simple'],
+      },
+      {
+        key: 'authentication.kerberos.keytab-uri',
+        value: '',
+        required: true,
+        description: 'The URI of The keytab for the Kerberos authentication.',
+        parentField: 'authentication.type',
+        hide: ['simple'],
+      },
+    ],
   },
   {
     label: 'Apache Paimon',
     value: 'lakehouse-paimon',
     defaultProps: [
-      { key: 'catalog-backend', value: 'filesystem', defaultValue: 'filesystem', required: true, select: ['filesystem', 'hive', 'jdbc'] },
-      { key: 'uri', value: '', required: true, description: 'e.g. thrift://127.0.0.1:9083 or jdbc:postgresql://127.0.0.1:5432/db_name', parentField: 'catalog-backend', hide: ['filesystem'] },
-      { key: 'warehouse', value: '', required: true, description: 'e.g. file:///user/hive/warehouse-paimon/ or hdfs://namespace/hdfs/path' },
-      { key: 'jdbc-driver', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'], description: '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL' },
+      {
+        key: 'catalog-backend',
+        value: 'filesystem',
+        defaultValue: 'filesystem',
+        required: true,
+        select: ['filesystem', 'hive', 'jdbc'],
+      },
+      {
+        key: 'uri',
+        value: '',
+        required: true,
+        description: 'e.g. thrift://127.0.0.1:9083 or jdbc:postgresql://127.0.0.1:5432/db_name',
+        parentField: 'catalog-backend',
+        hide: ['filesystem'],
+      },
+      {
+        key: 'warehouse',
+        value: '',
+        required: true,
+        description: 'e.g. file:///user/hive/warehouse-paimon/ or hdfs://namespace/hdfs/path',
+      },
+      {
+        key: 'jdbc-driver',
+        value: '',
+        required: true,
+        parentField: 'catalog-backend',
+        hide: ['hive', 'filesystem'],
+        description:
+          '"com.mysql.jdbc.Driver" or "com.mysql.cj.jdbc.Driver" for MySQL, "org.postgresql.Driver" for PostgreSQL',
+      },
       { key: 'jdbc-user', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'] },
       { key: 'jdbc-password', value: '', required: true, parentField: 'catalog-backend', hide: ['hive', 'filesystem'] },
-      { key: 'authentication.type', value: 'simple', defaultValue: 'simple', required: false, description: 'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple', select: ['simple', 'Kerberos'] },
-      { key: 'authentication.kerberos.principal', value: '', required: true, description: 'The principal of the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
-      { key: 'authentication.kerberos.keytab-uri', value: '', required: true, description: 'The URI of The keytab for the Kerberos authentication.', parentField: 'authentication.type', hide: ['simple'] },
-    ]
+      {
+        key: 'authentication.type',
+        value: 'simple',
+        defaultValue: 'simple',
+        required: false,
+        description:
+          'The type of authentication for Paimon catalog backend, currently Gravitino only supports Kerberos and simple',
+        select: ['simple', 'Kerberos'],
+      },
+      {
+        key: 'authentication.kerberos.principal',
+        value: '',
+        required: true,
+        description: 'The principal of the Kerberos authentication.',
+        parentField: 'authentication.type',
+        hide: ['simple'],
+      },
+      {
+        key: 'authentication.kerberos.keytab-uri',
+        value: '',
+        required: true,
+        description: 'The URI of The keytab for the Kerberos authentication.',
+        parentField: 'authentication.type',
+        hide: ['simple'],
+      },
+    ],
   },
   {
     label: 'Lakehouse Generic',
     value: 'lakehouse-generic',
-    defaultProps: []
+    defaultProps: [],
   },
   {
     label: 'MySQL',
     value: 'jdbc-mysql',
     defaultProps: [
-      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver' },
+      {
+        key: 'jdbc-driver',
+        value: '',
+        required: true,
+        description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver',
+      },
       { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:3306' },
       { key: 'jdbc-user', value: '', required: true },
       { key: 'jdbc-password', value: '', required: true },
-    ]
+    ],
   },
   {
     label: 'OceanBase',
     value: 'jdbc-oceanbase',
     defaultProps: [
-      { key: 'jdbc-driver', value: '', required: true, description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver or com.oceanbase.jdbc.Driver' },
-      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:2881 or jdbc:oceanbase://localhost:2881' },
+      {
+        key: 'jdbc-driver',
+        value: '',
+        required: true,
+        description: 'e.g. com.mysql.jdbc.Driver or com.mysql.cj.jdbc.Driver or com.oceanbase.jdbc.Driver',
+      },
+      {
+        key: 'jdbc-url',
+        value: '',
+        required: true,
+        description: 'e.g. jdbc:mysql://localhost:2881 or jdbc:oceanbase://localhost:2881',
+      },
       { key: 'jdbc-user', value: '', required: true },
       { key: 'jdbc-password', value: '', required: true },
-    ]
+    ],
   },
   {
     label: 'PostgreSQL',
     value: 'jdbc-postgresql',
     defaultProps: [
       { key: 'jdbc-driver', value: '', required: true, description: 'e.g. org.postgresql.Driver' },
-      { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:postgresql://localhost:5432/your_database' },
+      {
+        key: 'jdbc-url',
+        value: '',
+        required: true,
+        description: 'e.g. jdbc:postgresql://localhost:5432/your_database',
+      },
       { key: 'jdbc-user', value: '', required: true },
       { key: 'jdbc-password', value: '', required: true },
       { key: 'jdbc-database', value: '', required: true },
-    ]
+    ],
   },
   {
     label: 'StarRocks',
@@ -1465,7 +1567,7 @@ const providers: ProviderDef[] = [
       { key: 'jdbc-url', value: '', required: true, description: 'e.g. jdbc:mysql://localhost:9030' },
       { key: 'jdbc-user', value: '', required: true },
       { key: 'jdbc-password', value: '', required: true },
-    ]
+    ],
   },
 ]
 
@@ -1474,8 +1576,13 @@ const messagingProviders: ProviderDef[] = [
     label: 'Apache Kafka',
     value: 'kafka',
     defaultProps: [
-      { key: 'bootstrap.servers', value: '', required: true, description: 'The Apache Kafka brokers to connect to, allowing for multiple brokers separated by commas' },
-    ]
+      {
+        key: 'bootstrap.servers',
+        value: '',
+        required: true,
+        description: 'The Apache Kafka brokers to connect to, allowing for multiple brokers separated by commas',
+      },
+    ],
   },
 ]
 
@@ -1487,7 +1594,17 @@ const createCatalogName = ref('')
 const createCatalogType = ref('relational')
 const createCatalogProvider = ref('hive') // Default to first relational provider
 const createCatalogComment = ref('')
-const createCatalogProps = ref<Array<{ key: string; value: string; required?: boolean; description?: string; select?: string[]; parentField?: string; hide?: string[] }>>([])
+const createCatalogProps = ref<
+  Array<{
+    key: string
+    value: string
+    required?: boolean
+    description?: string
+    select?: string[]
+    parentField?: string
+    hide?: string[]
+  }>
+>([])
 
 // Computed: whether provider selection should be shown (not for fileset/model)
 const showProviderSelect = computed(() => {
@@ -1514,45 +1631,45 @@ const shouldHideProp = (prop: { parentField?: string; hide?: string[] }) => {
   return prop.hide.includes(parentProp.value)
 }
 
-const catalogBackendValue = computed(() =>
-  createCatalogProps.value.find(p => p.key === 'catalog-backend')?.value
-)
+const catalogBackendValue = computed(() => createCatalogProps.value.find(p => p.key === 'catalog-backend')?.value)
 
 const updateWarehouseRequired = () => {
   if (createCatalogProvider.value !== 'lakehouse-iceberg') return
   const backend = catalogBackendValue.value
   const required = backend === 'hive' || backend === 'jdbc'
-  createCatalogProps.value = createCatalogProps.value.map(p =>
-    p.key === 'warehouse' ? { ...p, required } : p
-  )
+  createCatalogProps.value = createCatalogProps.value.map(p => (p.key === 'warehouse' ? { ...p, required } : p))
 }
 
 // Watch for provider change to update properties
-watch(createCatalogProvider, (newProvider) => {
-  if (!showProviderSelect.value) return
-  const provider = availableProviders.value.find(p => p.value === newProvider)
-  if (provider && provider.defaultProps) {
-    createCatalogProps.value = provider.defaultProps.map(p => ({
-      key: p.key,
-      value: p.defaultValue || p.value,
-      required: p.required,
-      description: p.description,
-      select: p.select,
-      parentField: p.parentField,
-      hide: p.hide,
-    }))
-  } else {
-    createCatalogProps.value = []
-  }
-  updateWarehouseRequired()
-}, { immediate: true })
+watch(
+  createCatalogProvider,
+  newProvider => {
+    if (!showProviderSelect.value) return
+    const provider = availableProviders.value.find(p => p.value === newProvider)
+    if (provider && provider.defaultProps) {
+      createCatalogProps.value = provider.defaultProps.map(p => ({
+        key: p.key,
+        value: p.defaultValue || p.value,
+        required: p.required,
+        description: p.description,
+        select: p.select,
+        parentField: p.parentField,
+        hide: p.hide,
+      }))
+    } else {
+      createCatalogProps.value = []
+    }
+    updateWarehouseRequired()
+  },
+  { immediate: true }
+)
 
 watch(catalogBackendValue, () => {
   updateWarehouseRequired()
 })
 
 // Watch for type change to reset provider and properties
-watch(createCatalogType, (newType) => {
+watch(createCatalogType, newType => {
   switch (newType) {
     case 'relational':
       createCatalogProvider.value = 'hive'
@@ -1594,7 +1711,7 @@ const isCatalogFormValid = computed(() => {
   if (!createCatalogName.value.trim()) return false
   // Provider not required for fileset and model types
   if (showProviderSelect.value && !createCatalogProvider.value) return false
-  
+
   // Check required properties (only visible ones)
   for (const prop of createCatalogProps.value) {
     if (shouldHideProp(prop)) continue
@@ -1602,7 +1719,7 @@ const isCatalogFormValid = computed(() => {
       return false
     }
   }
-  
+
   return true
 })
 
@@ -1633,7 +1750,7 @@ const submitCreateCatalog = async () => {
     message.error('Metalake context is required')
     return
   }
-  
+
   // Validate required properties (only visible ones)
   const missingRequired = createCatalogProps.value.find(p => !shouldHideProp(p) && p.required && !p.value?.trim())
   if (missingRequired) {
@@ -1722,38 +1839,214 @@ const submitCreateSchema = async () => {
 
 // Column type mapping by provider (from Gravitino initial.js)
 const relationalColumnTypeMap: Record<string, string[]> = {
-  'lakehouse-iceberg': ['binary', 'boolean', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'long', 'string', 'time', 'timestamp', 'timestamp_tz', 'uuid'],
-  'hive': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'interval_day', 'interval_year', 'long', 'short', 'string', 'timestamp', 'varchar'],
-  'jdbc-mysql': ['binary', 'byte', 'byte unsigned', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'integer unsigned', 'long', 'long unsigned', 'short', 'short unsigned', 'string', 'time', 'timestamp', 'varchar'],
-  'jdbc-postgresql': ['binary', 'boolean', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'time', 'timestamp', 'timestamp_tz', 'varchar'],
-  'jdbc-starrocks': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'timestamp', 'varchar'],
-  'jdbc-doris': ['boolean', 'byte', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'long', 'short', 'string', 'timestamp', 'varchar'],
-  'lakehouse-paimon': ['binary', 'boolean', 'byte', 'char', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'long', 'short', 'string', 'time', 'timestamp', 'timestamp_tz', 'varchar'],
-  'lakehouse-generic': ['binary', 'boolean', 'byte', 'date', 'decimal', 'double', 'fixed', 'float', 'integer', 'interval_day', 'interval_year', 'long', 'short', 'string', 'time', 'timestamp'],
-  'jdbc-oceanbase': ['binary', 'byte', 'byte unsigned', 'char', 'date', 'decimal', 'double', 'float', 'integer', 'integer unsigned', 'long', 'long unsigned', 'short', 'short unsigned', 'string', 'time', 'timestamp', 'varchar']
+  'lakehouse-iceberg': [
+    'binary',
+    'boolean',
+    'date',
+    'decimal',
+    'double',
+    'fixed',
+    'float',
+    'integer',
+    'long',
+    'string',
+    'time',
+    'timestamp',
+    'timestamp_tz',
+    'uuid',
+  ],
+  hive: [
+    'binary',
+    'boolean',
+    'byte',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'interval_day',
+    'interval_year',
+    'long',
+    'short',
+    'string',
+    'timestamp',
+    'varchar',
+  ],
+  'jdbc-mysql': [
+    'binary',
+    'byte',
+    'byte unsigned',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'integer unsigned',
+    'long',
+    'long unsigned',
+    'short',
+    'short unsigned',
+    'string',
+    'time',
+    'timestamp',
+    'varchar',
+  ],
+  'jdbc-postgresql': [
+    'binary',
+    'boolean',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'long',
+    'short',
+    'string',
+    'time',
+    'timestamp',
+    'timestamp_tz',
+    'varchar',
+  ],
+  'jdbc-starrocks': [
+    'binary',
+    'boolean',
+    'byte',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'long',
+    'short',
+    'string',
+    'timestamp',
+    'varchar',
+  ],
+  'jdbc-doris': [
+    'boolean',
+    'byte',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'long',
+    'short',
+    'string',
+    'timestamp',
+    'varchar',
+  ],
+  'lakehouse-paimon': [
+    'binary',
+    'boolean',
+    'byte',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'fixed',
+    'float',
+    'integer',
+    'long',
+    'short',
+    'string',
+    'time',
+    'timestamp',
+    'timestamp_tz',
+    'varchar',
+  ],
+  'lakehouse-generic': [
+    'binary',
+    'boolean',
+    'byte',
+    'date',
+    'decimal',
+    'double',
+    'fixed',
+    'float',
+    'integer',
+    'interval_day',
+    'interval_year',
+    'long',
+    'short',
+    'string',
+    'time',
+    'timestamp',
+  ],
+  'jdbc-oceanbase': [
+    'binary',
+    'byte',
+    'byte unsigned',
+    'char',
+    'date',
+    'decimal',
+    'double',
+    'float',
+    'integer',
+    'integer unsigned',
+    'long',
+    'long unsigned',
+    'short',
+    'short unsigned',
+    'string',
+    'time',
+    'timestamp',
+    'varchar',
+  ],
 }
 
 // Table property info by provider (from Gravitino initial.js)
-const relationalTablePropInfo: Record<string, { immutable: string[]; defaultProps?: Array<{ key: string; value: string; required?: boolean; description?: string; disabled?: boolean }> }> = {
+const relationalTablePropInfo: Record<
+  string,
+  {
+    immutable: string[]
+    defaultProps?: Array<{ key: string; value: string; required?: boolean; description?: string; disabled?: boolean }>
+  }
+> = {
   'lakehouse-generic': {
     immutable: ['format', 'location'],
     defaultProps: [
-      { key: 'location', value: '', required: true, description: 'The storage location of the table. Required if not set in catalog or schema.' },
-      { key: 'format', value: 'lance', required: false, description: "The table format. Currently only 'lance' is supported.", disabled: true }
-    ]
+      {
+        key: 'location',
+        value: '',
+        required: true,
+        description: 'The storage location of the table. Required if not set in catalog or schema.',
+      },
+      {
+        key: 'format',
+        value: 'lance',
+        required: false,
+        description: "The table format. Currently only 'lance' is supported.",
+        disabled: true,
+      },
+    ],
   },
   'lakehouse-iceberg': {
-    immutable: ['location', 'provider', 'format', 'format-version']
+    immutable: ['location', 'provider', 'format', 'format-version'],
   },
-  'hive': {
-    immutable: ['format', 'input-format', 'location', 'output-format', 'serde-name', 'serde-lib', 'serde.parameter', 'table-type']
+  hive: {
+    immutable: [
+      'format',
+      'input-format',
+      'location',
+      'output-format',
+      'serde-name',
+      'serde-lib',
+      'serde.parameter',
+      'table-type',
+    ],
   },
   'lakehouse-paimon': {
-    immutable: ['merge-engine', 'rowkind.field', 'sequence.field']
+    immutable: ['merge-engine', 'rowkind.field', 'sequence.field'],
   },
   'jdbc-mysql': {
-    immutable: ['auto-increment-offset', 'engine']
-  }
+    immutable: ['auto-increment-offset', 'engine'],
+  },
 }
 
 const getColumnTypesForProvider = (provider: string | undefined): string[] => {
@@ -1771,11 +2064,13 @@ const createTableOpen = ref(false)
 const createTableName = ref('')
 const createTableComment = ref('')
 const createTableColumns = ref<Array<{ name: string; type: string; nullable: boolean; comment: string }>>([
-  { name: '', type: '', nullable: true, comment: '' }
+  { name: '', type: '', nullable: true, comment: '' },
 ])
-const createTableProps = ref<Array<{ key: string; value: string; disabled?: boolean; required?: boolean; description?: string }>>([
+const createTableProps = ref<
+  Array<{ key: string; value: string; disabled?: boolean; required?: boolean; description?: string }>
+>([
   { key: 'location', value: '' },
-  { key: 'format', value: 'lance' }
+  { key: 'format', value: 'lance' },
 ])
 
 const tablePropsObject = computed(() => {
@@ -1837,7 +2132,7 @@ const submitCreateTable = async () => {
         name: c.name,
         dataType: c.type,
         nullable: c.nullable,
-        comment: c.comment
+        comment: c.comment,
       })),
       properties: tablePropsObject.value,
     })
@@ -1907,18 +2202,36 @@ const submitCreateFileset = async () => {
 
   try {
     isLoading.value = true
-    const storageLocation = createFilesetLocations.value[0]?.location || ''
+
+    // Convert storage locations array to object format: { "name": "location", ... }
+    const storageLocations: Record<string, string> = {}
+    for (const loc of createFilesetLocations.value) {
+      const locName = loc.name?.trim()
+      const locPath = loc.location?.trim()
+      if (locName && locPath) {
+        storageLocations[locName] = locPath
+      }
+    }
+
+    // Build properties including default-location-name
+    const properties = { ...filesetPropsObject.value }
+    const firstLocationName = createFilesetLocations.value[0]?.name?.trim()
+    if (firstLocationName) {
+      properties['default-location-name'] = firstLocationName
+    }
+
     await api.createFileset(metalake, catalog, schema, {
       name,
       type: createFilesetType.value,
-      storageLocation,
+      storageLocations,
       comment: createFilesetComment.value,
-      properties: filesetPropsObject.value,
+      properties,
     })
     message.success('Fileset created')
     createFilesetOpen.value = false
     await refreshSchemaContext(metalake, catalog, type, schema)
-    // Stay on schema page, don't navigate
+    // Force tree to reload with updated filesets
+    await loadEntitiesForSchema(metalake, catalog, type, schema)
   } catch (err: any) {
     message.error(err?.message || 'Failed to create fileset')
   } finally {
@@ -1937,7 +2250,7 @@ const openCreate = (kind: ResourceKind) => {
     createCatalogOpen.value = true
     return
   }
-  
+
   if (kind === 'schema') {
     createSchemaName.value = ''
     createSchemaComment.value = ''
@@ -1945,17 +2258,17 @@ const openCreate = (kind: ResourceKind) => {
     createSchemaOpen.value = true
     return
   }
-  
+
   if (kind === 'table') {
     createTableName.value = ''
     createTableComment.value = ''
     createTableColumns.value = [{ name: '', type: '', nullable: true, comment: '' }]
-    
+
     // Get current catalog provider to set default props
     const catalog = catalogs.value.find(c => c.name === q.value.catalog)
     const provider = catalog?.provider
     const propInfo = getTablePropInfo(provider)
-    
+
     // Initialize properties with default props from provider config
     if (propInfo.defaultProps && propInfo.defaultProps.length > 0) {
       createTableProps.value = propInfo.defaultProps.map(p => ({
@@ -1963,16 +2276,16 @@ const openCreate = (kind: ResourceKind) => {
         value: p.value,
         disabled: p.disabled,
         required: p.required,
-        description: p.description
+        description: p.description,
       }))
     } else {
       createTableProps.value = [{ key: '', value: '' }]
     }
-    
+
     createTableOpen.value = true
     return
   }
-  
+
   if (kind === 'fileset') {
     createFilesetName.value = ''
     createFilesetType.value = 'Managed'
@@ -1982,7 +2295,7 @@ const openCreate = (kind: ResourceKind) => {
     createFilesetOpen.value = true
     return
   }
-  
+
   // For other types (topic, model, version), continue using JSON editor
   editKind.value = kind
   editMode.value = 'create'
@@ -2133,7 +2446,9 @@ async function openSchemaEdit(metalake: string, catalog: string, schema: string)
     editSchemaOriginal.value = s
     editSchemaName.value = s?.name ?? schema
     editSchemaComment.value = s?.comment ?? ''
-    editSchemaProps.value = s?.properties ? Object.entries(s.properties).map(([key, value]) => ({ key, value: String(value) })) : [{ key: '', value: '' }]
+    editSchemaProps.value = s?.properties
+      ? Object.entries(s.properties).map(([key, value]) => ({ key, value: String(value) }))
+      : [{ key: '', value: '' }]
     editSchemaOpen.value = true
   } catch {
     message.error('Failed to load schema details')
@@ -2178,7 +2493,9 @@ const editTableOpen = ref(false)
 const editTableOriginal = ref<any | null>(null)
 const editTableName = ref('')
 const editTableComment = ref('')
-const editTableColumns = ref<Array<{ name: string; type: string; nullable: boolean; comment: string }>>([{ name: '', type: '', nullable: true, comment: '' }])
+const editTableColumns = ref<Array<{ name: string; type: string; nullable: boolean; comment: string }>>([
+  { name: '', type: '', nullable: true, comment: '' },
+])
 const editTableProps = ref<Array<{ key: string; value: string }>>([{ key: '', value: '' }])
 
 const editTablePropsObject = computed(() => {
@@ -2193,7 +2510,6 @@ const editTablePropsObject = computed(() => {
 
 async function openTableEdit(metalake: string, catalog: string, schema: string, table: string) {
   try {
-    isLoading.value = true
     const res = await api.getTable(metalake, catalog, schema, table)
     const t = res?.table ?? res
     if (!t) {
@@ -2204,12 +2520,12 @@ async function openTableEdit(metalake: string, catalog: string, schema: string, 
     editTableName.value = t?.name ?? table
     editTableComment.value = t?.comment ?? ''
     editTableColumns.value = t?.columns?.length ? t.columns : [{ name: '', type: '', nullable: true, comment: '' }]
-    editTableProps.value = t?.properties ? Object.entries(t.properties).map(([key, value]) => ({ key, value: String(value) })) : [{ key: '', value: '' }]
+    editTableProps.value = t?.properties
+      ? Object.entries(t.properties).map(([key, value]) => ({ key, value: String(value) }))
+      : [{ key: '', value: '' }]
     editTableOpen.value = true
   } catch {
     message.error('Failed to load table details')
-  } finally {
-    isLoading.value = false
   }
 }
 
@@ -2237,7 +2553,6 @@ async function submitEditTable() {
     await api.updateTable(metalake, catalog, schema, original?.name ?? next.name, { updates })
     message.success('Table updated')
     editTableOpen.value = false
-    await refreshSchemaContext(metalake, catalog, type, schema)
   } catch (err: any) {
     message.error(err?.message || 'Failed to update table')
   } finally {
@@ -2277,8 +2592,12 @@ async function openFilesetEdit(metalake: string, catalog: string, schema: string
     editFilesetName.value = f?.name ?? fileset
     editFilesetType.value = f?.type ?? 'Managed'
     editFilesetComment.value = f?.comment ?? ''
-    editFilesetLocations.value = f?.storageLocations ? Object.entries(f.storageLocations).map(([name, location]) => ({ name, location: String(location) })) : [{ name: '', location: '' }]
-    editFilesetProps.value = f?.properties ? Object.entries(f.properties).map(([key, value]) => ({ key, value: String(value) })) : [{ key: '', value: '' }]
+    editFilesetLocations.value = f?.storageLocations
+      ? Object.entries(f.storageLocations).map(([name, location]) => ({ name, location: String(location) }))
+      : [{ name: '', location: '' }]
+    editFilesetProps.value = f?.properties
+      ? Object.entries(f.properties).map(([key, value]) => ({ key, value: String(value) }))
+      : [{ key: '', value: '' }]
     editFilesetOpen.value = true
   } catch {
     message.error('Failed to load fileset details')
@@ -2298,12 +2617,15 @@ async function submitEditFileset() {
     name: editFilesetName.value.trim(),
     type: editFilesetType.value,
     comment: editFilesetComment.value,
-    storageLocations: editFilesetLocations.value.reduce((acc, loc) => {
-      if (loc.name && loc.location) {
-        acc[loc.name] = loc.location
-      }
-      return acc
-    }, {} as Record<string, string>),
+    storageLocations: editFilesetLocations.value.reduce(
+      (acc, loc) => {
+        if (loc.name && loc.location) {
+          acc[loc.name] = loc.location
+        }
+        return acc
+      },
+      {} as Record<string, string>
+    ),
     properties: editFilesetPropsObject.value,
   }
   if (!next.name) {
@@ -2571,7 +2893,8 @@ const submitEdit = async () => {
         }
 
         case 'version': {
-          if (!metalake || !catalog || !schema || !q.value.model || !version) throw new Error('version context is required')
+          if (!metalake || !catalog || !schema || !q.value.model || !version)
+            throw new Error('version context is required')
           const updates = genUpdates(versionDetail.value, payload)
           await api.updateVersion(metalake, catalog, schema, q.value.model, String(version), { updates })
           message.success('Version updated')
@@ -2683,7 +3006,8 @@ const confirmDelete = async () => {
         goToSchema(metalake, catalog, type, schema)
         return
       case 'version':
-        if (!metalake || !catalog || !schema || !q.value.model || !version) throw new Error('version context is required')
+        if (!metalake || !catalog || !schema || !q.value.model || !version)
+          throw new Error('version context is required')
         await api.deleteVersion(metalake, catalog, schema, q.value.model, String(version))
         message.success('Version deleted')
         deleteOpen.value = false
@@ -2752,9 +3076,6 @@ const confirmDelete = async () => {
             <Icon name="ri:add-line" class="size-4" />
             <span>Create {{ typeLabel(q.type) }}</span>
           </Button>
-
-
-
 
           <Button
             v-if="q.type === 'model' && selectedEntityName && !q.version"
@@ -2838,7 +3159,6 @@ const confirmDelete = async () => {
                         <span class="font-medium">{{ m.name }}</span>
                       </Button>
                     </div>
-                    <div v-if="m.comment" class="text-xs text-muted-foreground mt-1 line-clamp-1">{{ m.comment }}</div>
                   </TableCell>
 
                   <TableCell class="text-sm text-muted-foreground">{{ m.createdBy || '—' }}</TableCell>
@@ -2906,14 +3226,19 @@ const confirmDelete = async () => {
 
               <div v-else class="space-y-1">
                 <div v-for="c in catalogs" :key="`${c.name}:${c.type}`" class="select-none">
-                  <div class="flex items-center gap-1 px-2 py-1 rounded-md" :class="q.catalog === c.name && q.type === c.type ? 'bg-muted/50' : ''">
+                  <div
+                    class="flex items-center gap-1 px-2 py-1 rounded-md"
+                    :class="q.catalog === c.name && q.type === c.type ? 'bg-muted/50' : ''"
+                  >
                     <button
                       class="p-1 rounded hover:bg-muted/40 cursor-pointer disabled:cursor-not-allowed"
                       :disabled="getResourceInUse(c) === false"
                       @click="toggleCatalogOpen(c.name, c.type)"
                     >
                       <Icon
-                        :name="openCatalogKeys[`${c.name}::${c.type}`] ? 'ri:arrow-down-s-line' : 'ri:arrow-right-s-line'"
+                        :name="
+                          openCatalogKeys[`${c.name}::${c.type}`] ? 'ri:arrow-down-s-line' : 'ri:arrow-right-s-line'
+                        "
                         class="size-4 text-muted-foreground"
                       />
                     </button>
@@ -2929,15 +3254,25 @@ const confirmDelete = async () => {
                   </div>
 
                   <div v-if="openCatalogKeys[`${c.name}::${c.type}`]" class="ml-6 mt-1 space-y-1">
-                    <div v-if="treeLoading[`schemas:${c.name}::${c.type}`]" class="px-3 py-1 text-sm text-muted-foreground">
+                    <div
+                      v-if="treeLoading[`schemas:${c.name}::${c.type}`]"
+                      class="px-3 py-1 text-sm text-muted-foreground"
+                    >
                       Loading…
                     </div>
                     <div v-else>
                       <div v-for="s in treeSchemasByCatalogKey[`${c.name}::${c.type}`] || []" :key="s">
-                        <div class="flex items-center gap-1 px-2 py-1 rounded-md" :class="q.schema === s && q.catalog === c.name ? 'bg-muted/50' : ''">
+                        <div
+                          class="flex items-center gap-1 px-2 py-1 rounded-md"
+                          :class="q.schema === s && q.catalog === c.name ? 'bg-muted/50' : ''"
+                        >
                           <button class="p-1 rounded hover:bg-muted/40" @click="toggleSchemaOpen(c.name, c.type, s)">
                             <Icon
-                              :name="openSchemaKeys[`${c.name}::${c.type}::${s}`] ? 'ri:arrow-down-s-line' : 'ri:arrow-right-s-line'"
+                              :name="
+                                openSchemaKeys[`${c.name}::${c.type}::${s}`]
+                                  ? 'ri:arrow-down-s-line'
+                                  : 'ri:arrow-right-s-line'
+                              "
                               class="size-4 text-muted-foreground"
                             />
                           </button>
@@ -2951,7 +3286,10 @@ const confirmDelete = async () => {
                         </div>
 
                         <div v-if="openSchemaKeys[`${c.name}::${c.type}::${s}`]" class="ml-6 mt-1 space-y-1">
-                          <div v-if="treeLoading[`entities:${c.name}::${c.type}::${s}`]" class="px-3 py-1 text-sm text-muted-foreground">
+                          <div
+                            v-if="treeLoading[`entities:${c.name}::${c.type}::${s}`]"
+                            class="px-3 py-1 text-sm text-muted-foreground"
+                          >
                             Loading…
                           </div>
                           <div v-else>
@@ -2959,7 +3297,9 @@ const confirmDelete = async () => {
                               v-for="e in treeEntitiesBySchemaKey[`${c.name}::${c.type}::${s}`] || []"
                               :key="e"
                               class="w-full flex items-center gap-2 px-3 py-2 rounded-md hover:bg-muted/40 transition cursor-pointer"
-                              :class="selectedEntityName === e && q.schema === s && q.catalog === c.name ? 'bg-muted/50' : ''"
+                              :class="
+                                selectedEntityName === e && q.schema === s && q.catalog === c.name ? 'bg-muted/50' : ''
+                              "
                               @click="goToEntity(q.metalake || '', c.name, c.type, s, e)"
                             >
                               <Icon name="ri:file-list-3-line" class="size-4 text-muted-foreground" />
@@ -3063,7 +3403,12 @@ const confirmDelete = async () => {
                               variant="ghost"
                               size="icon-sm"
                               :disabled="getResourceInUse(c) === true"
-                              @click="() => { goToCatalog(q.metalake || '', c.name, c.type); openDelete('catalog', { metalake: q.metalake, catalog: c.name, type: c.type }) }"
+                              @click="
+                                () => {
+                                  goToCatalog(q.metalake || '', c.name, c.type)
+                                  openDelete('catalog', { metalake: q.metalake, catalog: c.name, type: c.type })
+                                }
+                              "
                             >
                               <Icon name="ri:delete-bin-5-line" class="size-4" />
                             </Button>
@@ -3086,16 +3431,34 @@ const confirmDelete = async () => {
                     <TableBody>
                       <TableRow v-for="s in schemas" :key="s">
                         <TableCell>
-                          <Button variant="ghost" size="sm" class="px-2" @click="goToSchema(q.metalake || '', q.catalog || '', q.type || '', s)">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            class="px-2"
+                            @click="goToSchema(q.metalake || '', q.catalog || '', q.type || '', s)"
+                          >
                             <span class="font-medium">{{ s }}</span>
                           </Button>
                         </TableCell>
                         <TableCell>
                           <div class="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" @click="() => openSchemaEdit(q.metalake || '', q.catalog || '', s)">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              @click="() => openSchemaEdit(q.metalake || '', q.catalog || '', s)"
+                            >
                               <Icon name="ri:edit-line" class="size-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" @click="() => { goToSchema(q.metalake || '', q.catalog || '', q.type || '', s); openDelete('schema') }">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              @click="
+                                () => {
+                                  goToSchema(q.metalake || '', q.catalog || '', q.type || '', s)
+                                  openDelete('schema')
+                                }
+                              "
+                            >
                               <Icon name="ri:delete-bin-5-line" class="size-4" />
                             </Button>
                           </div>
@@ -3128,13 +3491,30 @@ const confirmDelete = async () => {
                         </TableCell>
                         <TableCell>
                           <div class="flex items-center gap-2">
-                            <Button variant="ghost" size="sm" @click="() => { 
-                              if (currentEntityKind === 'table') openTableEdit(q.metalake || '', q.catalog || '', q.schema || '', e)
-                              else if (currentEntityKind === 'fileset') openFilesetEdit(q.metalake || '', q.catalog || '', q.schema || '', e)
-                            }">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              @click="
+                                () => {
+                                  if (currentEntityKind === 'table')
+                                    openTableEdit(q.metalake || '', q.catalog || '', q.schema || '', e)
+                                  else if (currentEntityKind === 'fileset')
+                                    openFilesetEdit(q.metalake || '', q.catalog || '', q.schema || '', e)
+                                }
+                              "
+                            >
                               <Icon name="ri:edit-line" class="size-4" />
                             </Button>
-                            <Button variant="ghost" size="sm" @click="() => { goToEntity(q.metalake || '', q.catalog || '', q.type || '', q.schema || '', e); openDelete(currentEntityKind!) }">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              @click="
+                                () => {
+                                  goToEntity(q.metalake || '', q.catalog || '', q.type || '', q.schema || '', e)
+                                  openDelete(currentEntityKind!)
+                                }
+                              "
+                            >
                               <Icon name="ri:delete-bin-5-line" class="size-4" />
                             </Button>
                           </div>
@@ -3158,14 +3538,20 @@ const confirmDelete = async () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow v-for="col in (entityDetail?.columns || [])" :key="col.name">
+                      <TableRow v-for="col in entityDetail?.columns || []" :key="col.name">
                         <TableCell class="font-medium">{{ col.name }}</TableCell>
                         <TableCell>
                           <Badge variant="secondary">{{ col.type || col.dataType || '—' }}</Badge>
                         </TableCell>
-                        <TableCell class="text-sm text-muted-foreground">{{ String(col.nullable ?? col.isNullable ?? '—') }}</TableCell>
-                        <TableCell class="text-sm text-muted-foreground">{{ String(col.autoIncrement ?? col.isAutoIncrement ?? '—') }}</TableCell>
-                        <TableCell class="text-sm text-muted-foreground">{{ col.defaultValue ?? col.default ?? '—' }}</TableCell>
+                        <TableCell class="text-sm text-muted-foreground">{{
+                          String(col.nullable ?? col.isNullable ?? '—')
+                        }}</TableCell>
+                        <TableCell class="text-sm text-muted-foreground">{{
+                          String(col.autoIncrement ?? col.isAutoIncrement ?? '—')
+                        }}</TableCell>
+                        <TableCell class="text-sm text-muted-foreground">{{
+                          col.defaultValue ?? col.default ?? '—'
+                        }}</TableCell>
                         <TableCell class="text-sm text-muted-foreground">{{ col.comment ?? '—' }}</TableCell>
                       </TableRow>
                     </TableBody>
@@ -3200,7 +3586,9 @@ const confirmDelete = async () => {
                         <TableCell colSpan="4" class="text-sm text-muted-foreground">Loading…</TableCell>
                       </TableRow>
                       <TableRow v-else-if="!filesetFiles.length">
-                        <TableCell colSpan="4" class="text-sm text-muted-foreground text-center">No files found in this directory</TableCell>
+                        <TableCell colSpan="4" class="text-sm text-muted-foreground text-center"
+                          >No files found in this directory</TableCell
+                        >
                       </TableRow>
                       <template v-else>
                         <TableRow
@@ -3211,7 +3599,10 @@ const confirmDelete = async () => {
                         >
                           <TableCell>
                             <div class="flex items-center gap-2">
-                              <Icon :name="file?.isDir ? 'ri:folder-2-line' : 'ri:file-2-line'" class="size-4 text-muted-foreground" />
+                              <Icon
+                                :name="file?.isDir ? 'ri:folder-2-line' : 'ri:file-2-line'"
+                                class="size-4 text-muted-foreground"
+                              />
                               <span class="truncate">{{ file?.name || '—' }}</span>
                             </div>
                           </TableCell>
@@ -3246,7 +3637,15 @@ const confirmDelete = async () => {
                             variant="ghost"
                             size="sm"
                             class="px-2"
-                            @click="goToModelVersion(q.metalake || '', q.catalog || '', q.schema || '', q.model || '', String(v))"
+                            @click="
+                              goToModelVersion(
+                                q.metalake || '',
+                                q.catalog || '',
+                                q.schema || '',
+                                q.model || '',
+                                String(v)
+                              )
+                            "
                           >
                             <span class="font-medium">{{ String(v) }}</span>
                           </Button>
@@ -3256,14 +3655,36 @@ const confirmDelete = async () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              @click="() => { goToModelVersion(q.metalake || '', q.catalog || '', q.schema || '', q.model || '', String(v)); openEdit('version') }"
+                              @click="
+                                () => {
+                                  goToModelVersion(
+                                    q.metalake || '',
+                                    q.catalog || '',
+                                    q.schema || '',
+                                    q.model || '',
+                                    String(v)
+                                  )
+                                  openEdit('version')
+                                }
+                              "
                             >
                               <Icon name="ri:edit-line" class="size-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
-                              @click="() => { goToModelVersion(q.metalake || '', q.catalog || '', q.schema || '', q.model || '', String(v)); openDelete('version') }"
+                              @click="
+                                () => {
+                                  goToModelVersion(
+                                    q.metalake || '',
+                                    q.catalog || '',
+                                    q.schema || '',
+                                    q.model || '',
+                                    String(v)
+                                  )
+                                  openDelete('version')
+                                }
+                              "
                             >
                               <Icon name="ri:delete-bin-5-line" class="size-4" />
                             </Button>
@@ -3316,8 +3737,12 @@ const confirmDelete = async () => {
                           :key="`${name}-${idx}`"
                           class="border-b last:border-0 hover:bg-muted/50"
                         >
-                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-xs" :title="String(name)">{{ String(name) }}</TableCell>
-                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-sm" :title="String(location)">{{ String(location) }}</TableCell>
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-xs" :title="String(name)">{{
+                            String(name)
+                          }}</TableCell>
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-sm" :title="String(location)">{{
+                            String(location)
+                          }}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -3327,7 +3752,9 @@ const confirmDelete = async () => {
                 <!-- Comment full width -->
                 <div class="col-span-1">
                   <div class="text-sm text-muted-foreground font-medium mb-2">Comment</div>
-                  <div class="text-sm text-foreground break-words">{{ pickFirstString(detailsTarget?.comment) || 'N/A' }}</div>
+                  <div class="text-sm text-foreground break-words">
+                    {{ pickFirstString(detailsTarget?.comment) || 'N/A' }}
+                  </div>
                 </div>
 
                 <!-- Created and Last Modified info -->
@@ -3365,9 +3792,17 @@ const confirmDelete = async () => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        <TableRow v-for="[key, value] in Object.entries(detailsTarget?.properties || {})" :key="key" class="border-b last:border-0 hover:bg-muted/50">
-                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-xs" :title="key">{{ key }}</TableCell>
-                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-sm" :title="String(value)">{{ String(value) }}</TableCell>
+                        <TableRow
+                          v-for="[key, value] in Object.entries(detailsTarget?.properties || {})"
+                          :key="key"
+                          class="border-b last:border-0 hover:bg-muted/50"
+                        >
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-xs" :title="key">{{
+                            key
+                          }}</TableCell>
+                          <TableCell class="py-2 px-3 font-mono text-xs truncate max-w-sm" :title="String(value)">{{
+                            String(value)
+                          }}</TableCell>
                         </TableRow>
                       </TableBody>
                     </Table>
@@ -3402,12 +3837,7 @@ const confirmDelete = async () => {
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
               <div class="text-sm font-medium">Properties</div>
-              <Button
-                variant="outline"
-                size="sm"
-                class="inline-flex items-center gap-2"
-                @click="addMetalakePropRow"
-              >
+              <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addMetalakePropRow">
                 <Icon name="ri:add-line" class="size-4" />
                 <span>Add Property</span>
               </Button>
@@ -3433,6 +3863,11 @@ const confirmDelete = async () => {
             </div>
           </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="createMetalakeOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" @click="submitCreateMetalake">Create</Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
 
@@ -3446,16 +3881,19 @@ const confirmDelete = async () => {
         <div class="space-y-4">
           <div class="space-y-2">
             <div class="text-sm font-medium">Name <span class="text-red-500">*</span></div>
-            <Input 
-              v-model="createCatalogName" 
-              placeholder="Name" 
+            <Input
+              v-model="createCatalogName"
+              placeholder="Name"
               :class="{ 'border-red-500': !createCatalogName.trim() }"
             />
           </div>
 
           <div class="space-y-2">
             <div class="text-sm font-medium">Type <span class="text-red-500">*</span></div>
-            <select v-model="createCatalogType" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <select
+              v-model="createCatalogType"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
               <option value="relational">Relational</option>
               <option value="fileset">Fileset</option>
               <option value="messaging">Messaging</option>
@@ -3466,8 +3904,8 @@ const confirmDelete = async () => {
           <!-- Provider selection only for relational and messaging -->
           <div v-if="showProviderSelect" class="space-y-2">
             <div class="text-sm font-medium">Provider <span class="text-red-500">*</span></div>
-            <select 
-              v-model="createCatalogProvider" 
+            <select
+              v-model="createCatalogProvider"
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
               :class="{ 'border-red-500': !createCatalogProvider }"
             >
@@ -3504,7 +3942,7 @@ const confirmDelete = async () => {
                     class="flex-1"
                     :class="{ 'border-red-500': !prop.key?.trim() }"
                   />
-                  
+
                   <!-- Value field: select or input -->
                   <template v-if="prop.select && prop.select.length > 0">
                     <select
@@ -3524,21 +3962,16 @@ const confirmDelete = async () => {
                       :class="{ 'border-red-500': prop.required && !prop.value?.trim() }"
                     />
                   </template>
-                  
+
                   <!-- Remove button for non-required props -->
-                  <Button 
-                    v-if="!prop.required"
-                    variant="ghost" 
-                    size="sm" 
-                    @click="removeCatalogPropRow(idx)"
-                  >
+                  <Button v-if="!prop.required" variant="ghost" size="sm" @click="removeCatalogPropRow(idx)">
                     <Icon name="ri:delete-bin-5-line" class="size-4" />
                   </Button>
                   <div v-else class="w-8" />
                 </div>
-                
+
                 <!-- Description text (red if required and empty) -->
-                <div 
+                <div
                   v-if="prop.description"
                   class="text-xs pl-1"
                   :class="prop.required && !prop.value?.trim() ? 'text-red-500' : 'text-muted-foreground'"
@@ -3547,7 +3980,6 @@ const confirmDelete = async () => {
                 </div>
               </div>
             </template>
-            
           </div>
         </div>
 
@@ -3588,7 +4020,12 @@ const confirmDelete = async () => {
               <div v-for="(row, idx) in createSchemaProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
                 <Input v-model="row.key" placeholder="Key" />
                 <Input v-model="row.value" placeholder="Value" />
-                <Button variant="ghost" size="sm" :disabled="createSchemaProps.length <= 1" @click="removeSchemaPropRow(idx)">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="createSchemaProps.length <= 1"
+                  @click="removeSchemaPropRow(idx)"
+                >
                   <Icon name="ri:delete-bin-5-line" class="size-4" />
                 </Button>
               </div>
@@ -3631,13 +4068,19 @@ const confirmDelete = async () => {
                     <div v-if="!col.name.trim()" class="text-xs text-red-500 mt-1">Name is required</div>
                   </div>
                   <div>
-                    <select 
-                      v-model="col.type" 
-                      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm" 
+                    <select
+                      v-model="col.type"
+                      class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       :class="{ 'border-red-500': !col.type }"
                     >
                       <option value="">Type</option>
-                      <option v-for="t in getColumnTypesForProvider(catalogs.find(c => c.name === q.catalog)?.provider)" :key="t" :value="t">{{ t }}</option>
+                      <option
+                        v-for="t in getColumnTypesForProvider(catalogs.find(c => c.name === q.catalog)?.provider)"
+                        :key="t"
+                        :value="t"
+                      >
+                        {{ t }}
+                      </option>
                     </select>
                     <div v-if="!col.type" class="text-xs text-red-500 mt-1">Type is required</div>
                   </div>
@@ -3646,7 +4089,12 @@ const confirmDelete = async () => {
                     <span class="text-sm">Nullable</span>
                   </div>
                   <Input v-model="col.comment" placeholder="Comment" />
-                  <Button variant="ghost" size="sm" @click="removeTableColumn(idx)" :disabled="createTableColumns.length <= 1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    @click="removeTableColumn(idx)"
+                    :disabled="createTableColumns.length <= 1"
+                  >
                     <Icon name="ri:delete-bin-5-line" class="size-4" />
                   </Button>
                 </div>
@@ -3669,27 +4117,34 @@ const confirmDelete = async () => {
             <div class="space-y-2">
               <div v-for="(row, idx) in createTableProps" :key="idx" class="space-y-1">
                 <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                  <Input 
-                    v-model="row.key" 
-                    placeholder="Key" 
-                    :disabled="row.disabled || getTablePropInfo(catalogs.find(c => c.name === q.catalog)?.provider).immutable.includes(row.key)"
+                  <Input
+                    v-model="row.key"
+                    placeholder="Key"
+                    :disabled="
+                      row.disabled ||
+                      getTablePropInfo(catalogs.find(c => c.name === q.catalog)?.provider).immutable.includes(row.key)
+                    "
                   />
-                  <Input 
-                    v-model="row.value" 
-                    placeholder="Value" 
+                  <Input
+                    v-model="row.value"
+                    placeholder="Value"
                     :class="{ 'border-red-500': row.required && !row.value }"
                     :disabled="row.disabled"
                   />
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    :disabled="createTableProps.length <= 1 || row.disabled" 
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    :disabled="createTableProps.length <= 1 || row.disabled"
                     @click="removeTablePropRow(idx)"
                   >
                     <Icon name="ri:delete-bin-5-line" class="size-4" />
                   </Button>
                 </div>
-                <div v-if="row.description" class="text-xs" :class="row.required && !row.value ? 'text-red-500' : 'text-muted-foreground'">
+                <div
+                  v-if="row.description"
+                  class="text-xs"
+                  :class="row.required && !row.value ? 'text-red-500' : 'text-muted-foreground'"
+                >
                   {{ row.description }} {{ row.required && !row.value ? '(Required)' : '' }}
                 </div>
               </div>
@@ -3719,7 +4174,10 @@ const confirmDelete = async () => {
 
           <div class="space-y-2">
             <div class="text-sm font-medium">Type</div>
-            <select v-model="createFilesetType" class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+            <select
+              v-model="createFilesetType"
+              class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
               <option value="Managed">Managed</option>
               <option value="External">External</option>
             </select>
@@ -3734,10 +4192,12 @@ const confirmDelete = async () => {
               </div>
             </div>
             <div class="text-xs text-muted-foreground">
-              It is optional if the fileset is 'Managed' type and a storage location is already specified at the parent catalog or schema level.
+              It is optional if the fileset is 'Managed' type and a storage location is already specified at the parent
+              catalog or schema level.
             </div>
             <div class="text-xs text-muted-foreground">
-              It becomes mandatory if the fileset type is 'External' or no storage location is defined at the parent level.
+              It becomes mandatory if the fileset type is 'External' or no storage location is defined at the parent
+              level.
             </div>
           </div>
 
@@ -3758,7 +4218,12 @@ const confirmDelete = async () => {
               <div v-for="(row, idx) in createFilesetProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
                 <Input v-model="row.key" placeholder="Key" />
                 <Input v-model="row.value" placeholder="Value" />
-                <Button variant="ghost" size="sm" :disabled="createFilesetProps.length <= 1" @click="removeFilesetPropRow(idx)">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  :disabled="createFilesetProps.length <= 1"
+                  @click="removeFilesetPropRow(idx)"
+                >
                   <Icon name="ri:delete-bin-5-line" class="size-4" />
                 </Button>
               </div>
@@ -3773,307 +4238,293 @@ const confirmDelete = async () => {
       </DialogContent>
     </Dialog>
 
-          <!-- Edit Schema (structured form, Gravitino-like) -->
-          <Dialog v-model:open="editSchemaOpen">
-            <DialogContent class="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Schema</DialogTitle>
-                <DialogDescription>Update schema metadata and properties.</DialogDescription>
-              </DialogHeader>
+    <!-- Edit Schema (structured form, Gravitino-like) -->
+    <Dialog v-model:open="editSchemaOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Schema</DialogTitle>
+          <DialogDescription>Update schema metadata and properties.</DialogDescription>
+        </DialogHeader>
 
-              <div class="space-y-4">
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Name</div>
-                  <Input v-model="editSchemaName" placeholder="schema_name" disabled />
-                </div>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="editSchemaName" placeholder="schema_name" disabled />
+          </div>
 
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Comment</div>
-                  <Textarea v-model="editSchemaComment" placeholder="Optional comment" />
-                </div>
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="editSchemaComment" placeholder="Optional comment" />
+          </div>
 
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-sm font-medium">Properties</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="inline-flex items-center gap-2"
-                      @click="() => (editSchemaProps = [...editSchemaProps, { key: '', value: '' }])"
-                    >
-                      <Icon name="ri:add-line" class="size-4" />
-                      <span>Add Property</span>
-                    </Button>
-                  </div>
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button
+                variant="outline"
+                size="sm"
+                class="inline-flex items-center gap-2"
+                @click="() => (editSchemaProps = [...editSchemaProps, { key: '', value: '' }])"
+              >
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
 
-                  <div class="space-y-2">
-                    <div
-                      v-for="(row, idx) in editSchemaProps"
-                      :key="idx"
-                      class="grid grid-cols-[1fr_1fr_auto] gap-2"
-                    >
-                      <Input v-model="row.key" placeholder="Key" />
-                      <Input v-model="row.value" placeholder="Value" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="justify-self-start"
-                        :disabled="editSchemaProps.length <= 1"
-                        @click="() => (editSchemaProps = editSchemaProps.filter((_, i) => i !== idx))"
-                      >
-                        <Icon name="ri:delete-bin-5-line" class="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <DialogFooter>
-                <Button variant="outline" @click="editSchemaOpen = false">Cancel</Button>
-                <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditSchema">
-                  <Icon name="ri:save-3-line" class="size-4" />
-                  <span>Update</span>
+            <div class="space-y-2">
+              <div v-for="(row, idx) in editSchemaProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input v-model="row.key" placeholder="Key" />
+                <Input v-model="row.value" placeholder="Value" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="justify-self-start"
+                  :disabled="editSchemaProps.length <= 1"
+                  @click="() => (editSchemaProps = editSchemaProps.filter((_, i) => i !== idx))"
+                >
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <!-- Edit Table (structured form, Gravitino-like) -->
-          <Dialog v-model:open="editTableOpen">
-            <DialogContent class="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Edit Table</DialogTitle>
-                <DialogDescription>Update table metadata and properties.</DialogDescription>
-              </DialogHeader>
-
-              <div class="space-y-4">
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Name</div>
-                  <Input v-model="editTableName" placeholder="table_name" disabled />
-                </div>
-
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Comment</div>
-                  <Textarea v-model="editTableComment" placeholder="Optional comment" />
-                </div>
-
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Columns (Read-only)</div>
-                  <div class="border rounded-md">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Type</TableHead>
-                          <TableHead>Nullable</TableHead>
-                          <TableHead>Comment</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow v-for="(col, idx) in editTableColumns" :key="idx">
-                          <TableCell>{{ col.name }}</TableCell>
-                          <TableCell>{{ col.type }}</TableCell>
-                          <TableCell>{{ col.nullable ? 'Yes' : 'No' }}</TableCell>
-                          <TableCell>{{ col.comment }}</TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </div>
-                  <p class="text-xs text-muted-foreground">
-                    Column structure cannot be modified through this dialog
-                  </p>
-                </div>
-
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-sm font-medium">Properties</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="inline-flex items-center gap-2"
-                      @click="() => (editTableProps = [...editTableProps, { key: '', value: '' }])"
-                    >
-                      <Icon name="ri:add-line" class="size-4" />
-                      <span>Add Property</span>
-                    </Button>
-                  </div>
-
-                  <div class="space-y-2">
-                    <div
-                      v-for="(row, idx) in editTableProps"
-                      :key="idx"
-                      class="grid grid-cols-[1fr_1fr_auto] gap-2"
-                    >
-                      <Input v-model="row.key" placeholder="Key" />
-                      <Input v-model="row.value" placeholder="Value" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="justify-self-start"
-                        :disabled="editTableProps.length <= 1"
-                        @click="() => (editTableProps = editTableProps.filter((_, i) => i !== idx))"
-                      >
-                        <Icon name="ri:delete-bin-5-line" class="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <DialogFooter>
-                <Button variant="outline" @click="editTableOpen = false">Cancel</Button>
-                <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditTable">
-                  <Icon name="ri:save-3-line" class="size-4" />
-                  <span>Update</span>
+        <DialogFooter>
+          <Button variant="outline" @click="editSchemaOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditSchema">
+            <Icon name="ri:save-3-line" class="size-4" />
+            <span>Update</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Edit Table (structured form, Gravitino-like) -->
+    <Dialog v-model:open="editTableOpen">
+      <DialogContent class="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Edit Table</DialogTitle>
+          <DialogDescription>Update table metadata and properties.</DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="editTableName" placeholder="table_name" disabled />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="editTableComment" placeholder="Optional comment" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Columns (Read-only)</div>
+            <div class="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Nullable</TableHead>
+                    <TableHead>Comment</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow v-for="(col, idx) in editTableColumns" :key="idx">
+                    <TableCell>{{ col.name }}</TableCell>
+                    <TableCell>{{ col.type }}</TableCell>
+                    <TableCell>{{ col.nullable ? 'Yes' : 'No' }}</TableCell>
+                    <TableCell>{{ col.comment }}</TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+            <p class="text-xs text-muted-foreground">Column structure cannot be modified through this dialog</p>
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button
+                variant="outline"
+                size="sm"
+                class="inline-flex items-center gap-2"
+                @click="() => (editTableProps = [...editTableProps, { key: '', value: '' }])"
+              >
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="(row, idx) in editTableProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input v-model="row.key" placeholder="Key" />
+                <Input v-model="row.value" placeholder="Value" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="justify-self-start"
+                  :disabled="editTableProps.length <= 1"
+                  @click="() => (editTableProps = editTableProps.filter((_, i) => i !== idx))"
+                >
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-
-          <!-- Edit Fileset (structured form, Gravitino-like) -->
-          <Dialog v-model:open="editFilesetOpen">
-            <DialogContent class="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Fileset</DialogTitle>
-                <DialogDescription>Update fileset metadata and properties.</DialogDescription>
-              </DialogHeader>
-
-              <div class="space-y-4">
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Name</div>
-                  <Input v-model="editFilesetName" placeholder="fileset_name" disabled />
-                </div>
-
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Type</div>
-                  <Input v-model="editFilesetType" placeholder="Type" disabled />
-                </div>
-
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Storage Locations</div>
-                  <div class="space-y-2">
-                    <div v-for="(loc, idx) in editFilesetLocations" :key="idx" class="grid grid-cols-[1fr_1fr] gap-2">
-                      <Input v-model="loc.name" placeholder="Name" />
-                      <Input v-model="loc.location" placeholder="Location" />
-                    </div>
-                  </div>
-                </div>
-
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Comment</div>
-                  <Textarea v-model="editFilesetComment" placeholder="Optional comment" />
-                </div>
-
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-sm font-medium">Properties</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="inline-flex items-center gap-2"
-                      @click="() => (editFilesetProps = [...editFilesetProps, { key: '', value: '' }])"
-                    >
-                      <Icon name="ri:add-line" class="size-4" />
-                      <span>Add Property</span>
-                    </Button>
-                  </div>
-
-                  <div class="space-y-2">
-                    <div
-                      v-for="(row, idx) in editFilesetProps"
-                      :key="idx"
-                      class="grid grid-cols-[1fr_1fr_auto] gap-2"
-                    >
-                      <Input v-model="row.key" placeholder="Key" />
-                      <Input v-model="row.value" placeholder="Value" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="justify-self-start"
-                        :disabled="editFilesetProps.length <= 1"
-                        @click="() => (editFilesetProps = editFilesetProps.filter((_, i) => i !== idx))"
-                      >
-                        <Icon name="ri:delete-bin-5-line" class="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <DialogFooter>
-                <Button variant="outline" @click="editFilesetOpen = false">Cancel</Button>
-                <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditFileset">
-                  <Icon name="ri:save-3-line" class="size-4" />
-                  <span>Update</span>
-                </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        <DialogFooter>
+          <Button variant="outline" @click="editTableOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditTable">
+            <Icon name="ri:save-3-line" class="size-4" />
+            <span>Update</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
-          <!-- Edit Catalog (structured form, Gravitino-like) -->
-          <Dialog v-model:open="editCatalogOpen">
-            <DialogContent class="sm:max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Catalog</DialogTitle>
-                <DialogDescription>Update catalog metadata and properties.</DialogDescription>
-              </DialogHeader>
+    <!-- Edit Fileset (structured form, Gravitino-like) -->
+    <Dialog v-model:open="editFilesetOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Fileset</DialogTitle>
+          <DialogDescription>Update fileset metadata and properties.</DialogDescription>
+        </DialogHeader>
 
-              <div class="space-y-4">
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Name</div>
-                  <Input v-model="editCatalogName" placeholder="catalog_name" />
-                </div>
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="editFilesetName" placeholder="fileset_name" disabled />
+          </div>
 
-                <div class="space-y-2">
-                  <div class="text-sm font-medium">Comment</div>
-                  <Textarea v-model="editCatalogComment" placeholder="Optional description" />
-                </div>
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Type</div>
+            <Input v-model="editFilesetType" placeholder="Type" disabled />
+          </div>
 
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between gap-2">
-                    <div class="text-sm font-medium">Properties</div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      class="inline-flex items-center gap-2"
-                      @click="() => (editCatalogProps = [...editCatalogProps, { key: '', value: '' }])"
-                    >
-                      <Icon name="ri:add-line" class="size-4" />
-                      <span>Add Property</span>
-                    </Button>
-                  </div>
-
-                  <div class="space-y-2">
-                    <div
-                      v-for="(row, idx) in editCatalogProps"
-                      :key="idx"
-                      class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
-                    >
-                      <Input v-model="row.key" placeholder="Key" :disabled="row.key === 'in-use' || row.disabled" />
-                      <Input v-model="row.value" placeholder="Value" :disabled="row.key === 'in-use' || row.disabled" />
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        class="justify-self-start"
-                        :disabled="editCatalogProps.length <= 1 || row.key === 'in-use' || row.disabled"
-                        @click="() => (editCatalogProps = editCatalogProps.filter((_, i) => i !== idx))"
-                      >
-                        <Icon name="ri:delete-bin-5-line" class="size-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Storage Locations</div>
+            <div class="space-y-2">
+              <div v-for="(loc, idx) in editFilesetLocations" :key="idx" class="grid grid-cols-[1fr_1fr] gap-2">
+                <Input v-model="loc.name" placeholder="Name" />
+                <Input v-model="loc.location" placeholder="Location" />
               </div>
+            </div>
+          </div>
 
-              <DialogFooter>
-                <Button variant="outline" @click="editCatalogOpen = false">Cancel</Button>
-                <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditCatalog">
-                  <Icon name="ri:save-3-line" class="size-4" />
-                  <span>Update</span>
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="editFilesetComment" placeholder="Optional comment" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button
+                variant="outline"
+                size="sm"
+                class="inline-flex items-center gap-2"
+                @click="() => (editFilesetProps = [...editFilesetProps, { key: '', value: '' }])"
+              >
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+
+            <div class="space-y-2">
+              <div v-for="(row, idx) in editFilesetProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
+                <Input v-model="row.key" placeholder="Key" />
+                <Input v-model="row.value" placeholder="Value" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="justify-self-start"
+                  :disabled="editFilesetProps.length <= 1"
+                  @click="() => (editFilesetProps = editFilesetProps.filter((_, i) => i !== idx))"
+                >
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="editFilesetOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditFileset">
+            <Icon name="ri:save-3-line" class="size-4" />
+            <span>Update</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Edit Catalog (structured form, Gravitino-like) -->
+    <Dialog v-model:open="editCatalogOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Edit Catalog</DialogTitle>
+          <DialogDescription>Update catalog metadata and properties.</DialogDescription>
+        </DialogHeader>
+
+        <div class="space-y-4">
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Name</div>
+            <Input v-model="editCatalogName" placeholder="catalog_name" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="text-sm font-medium">Comment</div>
+            <Textarea v-model="editCatalogComment" placeholder="Optional description" />
+          </div>
+
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2">
+              <div class="text-sm font-medium">Properties</div>
+              <Button
+                variant="outline"
+                size="sm"
+                class="inline-flex items-center gap-2"
+                @click="() => (editCatalogProps = [...editCatalogProps, { key: '', value: '' }])"
+              >
+                <Icon name="ri:add-line" class="size-4" />
+                <span>Add Property</span>
+              </Button>
+            </div>
+
+            <div class="space-y-2">
+              <div
+                v-for="(row, idx) in editCatalogProps"
+                :key="idx"
+                class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
+              >
+                <Input v-model="row.key" placeholder="Key" :disabled="row.key === 'in-use' || row.disabled" />
+                <Input v-model="row.value" placeholder="Value" :disabled="row.key === 'in-use' || row.disabled" />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  class="justify-self-start"
+                  :disabled="editCatalogProps.length <= 1 || row.key === 'in-use' || row.disabled"
+                  @click="() => (editCatalogProps = editCatalogProps.filter((_, i) => i !== idx))"
+                >
+                  <Icon name="ri:delete-bin-5-line" class="size-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <DialogFooter>
+          <Button variant="outline" @click="editCatalogOpen = false">Cancel</Button>
+          <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditCatalog">
+            <Icon name="ri:save-3-line" class="size-4" />
+            <span>Update</span>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
 
     <!-- Edit Metalake Dialog -->
     <Dialog v-model:open="editMetalakeOpen">
@@ -4149,9 +4600,7 @@ const confirmDelete = async () => {
         </DialogHeader>
         <div class="space-y-2">
           <JsonEditor v-model="editJson" />
-          <p class="text-xs text-muted-foreground">
-            Tip: Use the format button to pretty-print JSON.
-          </p>
+          <p class="text-xs text-muted-foreground">Tip: Use the format button to pretty-print JSON.</p>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="editOpen = false">Cancel</Button>
@@ -4169,9 +4618,7 @@ const confirmDelete = async () => {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ deleteTitle }}</AlertDialogTitle>
-          <AlertDialogDescription>
-            This operation cannot be undone.
-          </AlertDialogDescription>
+          <AlertDialogDescription> This operation cannot be undone. </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>Cancel</AlertDialogCancel>

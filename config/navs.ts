@@ -8,23 +8,28 @@ export default [
     to: '/dashboard',
   },
   {
-    label: 'AI Data Lake',
+    label: 'UniLake',
     icon: 'ri:database-2-line',
     children: [
+      {
+        label: 'Lakebase',
+        to: '/ai-datalake/lakebase',
+        icon: 'ri:stack-line',
+      },
+      {
+        label: 'Lakehouse',
+        to: '/ai-datalake/lakehouse',
+        icon: 'ri:home-gear-line',
+      },
       {
         label: 'Catalog',
         to: '/ai-datalake/catalog',
         icon: 'ri:book-line',
       },
       {
-        label: 'File Metadata',
-        to: '/ai-datalake/file-metadata',
+        label: 'Volume Catalog',
+        to: '/ai-datalake/volume-catalog',
         icon: 'ri:file-list-line',
-      },
-      {
-        label: '数据集',
-        to: '/ai-datalake/dataset',
-        icon: 'ri:apps-2-line',
       },
     ],
   },
