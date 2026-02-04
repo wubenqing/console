@@ -2130,7 +2130,7 @@ const submitCreateTable = async () => {
       comment: createTableComment.value,
       columns: columns.map(c => ({
         name: c.name,
-        dataType: c.type,
+        type: c.type,
         nullable: c.nullable,
         comment: c.comment,
       })),
