@@ -67,7 +67,7 @@
           </div>
           <div class="flex items-center justify-between gap-3 min-w-0">
             <span class="font-medium text-muted-foreground">{{ t('Legal Hold') }}</span>
-            <Switch :checked="lockStatus" @update:checked="toggleLegalHold" />
+            <Switch v-model="lockStatus" @update:model-value="toggleLegalHold" />
           </div>
           <div class="flex flex-col gap-2">
             <span class="font-medium text-muted-foreground">{{ t('Retention') + t('Policy') }}</span>
@@ -447,13 +447,13 @@ const fetchRetention = async (key: string) => {
   }
 }
 
-const toggleLegalHold = async () => {
+const toggleLegalHold = async (newValue: boolean) => {
   if (!object.value) return
   try {
-    await setLegalHold(object.value.Key, !lockStatus.value)
-    lockStatus.value = !lockStatus.value
+    await setLegalHold(object.value.Key, newValue)
     message.success(t('Update Success'))
   } catch (error: any) {
+    lockStatus.value = !newValue
     message.error(error?.message || t('Update Failed'))
   }
 }

@@ -3166,10 +3166,10 @@ const confirmDelete = async () => {
 
                   <TableCell>
                     <Switch
-                      :key="`list-metalake-${m.name}-${isResourceInUse(m)}`"
-                      :checked="isResourceInUse(m)"
+                      :key="`list-metalake-${m.name}-${m.inUse}`"
+                      :model-value="m.inUse === true"
                       :disabled="isLoading"
-                      @update:checked="(v: boolean) => toggleMetalakeInUseFromList(m.name, v)"
+                      @update:model-value="(v: boolean) => toggleMetalakeInUseFromList(m.name, v)"
                     />
                   </TableCell>
 
@@ -3382,10 +3382,10 @@ const confirmDelete = async () => {
 
                         <TableCell>
                           <Switch
-                            :key="`list-catalog-${c.name}-${isResourceInUse(c)}`"
-                            :checked="isResourceInUse(c) === true"
+                            :key="`list-catalog-${c.name}-${getResourceInUse(c)}`"
+                            :model-value="getResourceInUse(c) === true"
                             :disabled="isLoading"
-                            @update:checked="(v: boolean) => toggleCatalogInUse(c.name, v)"
+                            @update:model-value="(v: boolean) => toggleCatalogInUse(c.name, v)"
                           />
                         </TableCell>
 

@@ -1,353 +1,353 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<testsuites name="vitest tests" tests="167" failures="0" errors="0" time="0.241044278">
-    <testsuite name="tests/lib/utils.test.ts" timestamp="2026-01-28T06:22:09.404Z" hostname="localhost.localdomain" tests="23" failures="0" errors="0" skipped="0" time="0.023256259">
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge class names correctly" time="0.010006054">
+<testsuites name="vitest tests" tests="167" failures="0" errors="0" time="0.270690502">
+    <testsuite name="tests/lib/utils.test.ts" timestamp="2026-02-09T08:16:09.475Z" hostname="localhost.localdomain" tests="23" failures="0" errors="0" skipped="0" time="0.027159837">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge class names correctly" time="0.011992901">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle conditional classes" time="0.000499335">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle conditional classes" time="0.000644606">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle arrays of classes" time="0.00033259">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle arrays of classes" time="0.000412044">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle objects with boolean values" time="0.000423181">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle objects with boolean values" time="0.000473414">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge Tailwind classes correctly (remove duplicates)" time="0.001044928">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge Tailwind classes correctly (remove duplicates)" time="0.00116672">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle empty inputs" time="0.000400034">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle empty inputs" time="0.000466942">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle null and undefined" time="0.000263168">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle null and undefined" time="0.000292418">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle mixed input types" time="0.00044856">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should handle mixed input types" time="0.000429032">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge conflicting Tailwind utilities" time="0.000554761">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should merge conflicting Tailwind utilities" time="0.000659941">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should preserve non-Tailwind classes" time="0.000423805">
+        <testcase classname="tests/lib/utils.test.ts" name="cn &gt; should preserve non-Tailwind classes" time="0.000481872">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should update ref with direct value" time="0.000892164">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should update ref with direct value" time="0.000988622">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should update ref with updater function" time="0.000274185">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should update ref with updater function" time="0.000301706">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle string values" time="0.000342012">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle string values" time="0.000382759">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle string updater function" time="0.000479896">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle string updater function" time="0.000532693">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle object values" time="0.001522043">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle object values" time="0.001715595">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle object updater function" time="0.000377076">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle object updater function" time="0.000429417">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle array values" time="0.000381491">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle array values" time="0.000424346">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle array updater function" time="0.000671109">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle array updater function" time="0.000860928">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle boolean values" time="0.000260836">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle boolean values" time="0.000282992">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle boolean updater function" time="0.00033103">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle boolean updater function" time="0.000378929">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle null values" time="0.000251701">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle null values" time="0.000285649">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle undefined values" time="0.000244358">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should handle undefined values" time="0.000272433">
         </testcase>
-        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should work with complex nested objects" time="0.000547867">
-        </testcase>
-    </testsuite>
-    <testsuite name="tests/utils/array.test.ts" timestamp="2026-01-28T06:22:09.413Z" hostname="localhost.localdomain" tests="8" failures="0" errors="0" skipped="0" time="0.012270417">
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should convert flat array to tree structure" time="0.004594046">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle empty array" time="0.001139713">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle single item without parent" time="0.000705807">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle nested multiple levels" time="0.001131015">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle pid with value 0 (falsy edge case)" time="0.000710757">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle orphaned nodes (pid references non-existent parent)" time="0.000585543">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle multiple children at same level" time="0.000931897">
-        </testcase>
-        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should preserve original item properties" time="0.00051695">
+        <testcase classname="tests/lib/utils.test.ts" name="valueUpdater &gt; should work with complex nested objects" time="0.000644203">
         </testcase>
     </testsuite>
-    <testsuite name="tests/utils/bucket-policy.test.ts" timestamp="2026-01-28T06:22:09.415Z" hostname="localhost.localdomain" tests="41" failures="0" errors="0" skipped="0" time="0.032638652">
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="PolicyEffect &gt; should have Allow and Deny values" time="0.003863468">
+    <testsuite name="tests/utils/array.test.ts" timestamp="2026-02-09T08:16:09.483Z" hostname="localhost.localdomain" tests="8" failures="0" errors="0" skipped="0" time="0.012858434">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should convert flat array to tree structure" time="0.004905141">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="PolicyAction &gt; should have correct S3 action strings" time="0.000941179">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle empty array" time="0.001205263">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="BucketPolicyConstants &gt; should have all policy type constants" time="0.000813928">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle single item without parent" time="0.000750691">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should format bucket ARN correctly" time="0.000466595">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle nested multiple levels" time="0.001150291">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should format object ARN correctly" time="0.000350355">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle pid with value 0 (falsy edge case)" time="0.000729608">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should handle empty object path" time="0.000457489">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle orphaned nodes (pid references non-existent parent)" time="0.000646382">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should handle wildcard object path" time="0.000315073">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should handle multiple children at same level" time="0.000958796">
         </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match exact resource strings" time="0.000507073">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match wildcard patterns" time="0.000594964">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match prefix patterns" time="0.000488641">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match suffix patterns" time="0.000417251">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match middle patterns" time="0.000485844">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should handle empty pattern" time="0.000316891">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should validate correct statement" time="0.000736745">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Effect" time="0.000379482">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Principal" time="0.000278779">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Principal.AWS" time="0.000265141">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Action" time="0.000263534">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Action" time="0.000241791">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Resource" time="0.000370669">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Resource" time="0.000252573">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should validate correct policy" time="0.000349096">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy without Version" time="0.000278814">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy without Statement" time="0.000262932">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy with empty Statement" time="0.000217357">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy with invalid statement" time="0.000268255">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createAllowStatement &gt; should create valid allow statement" time="0.00171635">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createAllowStatement &gt; should throw error for invalid statement" time="0.00212646">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createDenyStatement &gt; should create valid deny statement" time="0.000718117">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createDenyStatement &gt; should throw error for invalid statement" time="0.00044617">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createBucketPolicy &gt; should create valid bucket policy" time="0.000548115">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createBucketPolicy &gt; should throw error for invalid policy" time="0.000433617">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createPrivatePolicy &gt; should create private policy statements" time="0.002479482">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="createPublicPolicy &gt; should create public policy statements" time="0.002043716">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect public policy" time="0.000597872">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect private policy" time="0.000311233">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect none policy for empty statements" time="0.000218286">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should set private policy" time="0.000828722">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should set public policy" time="0.000381016">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should replace existing policy" time="0.000496332">
-        </testcase>
-        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should preserve policies for other buckets" time="0.000336501">
+        <testcase classname="tests/utils/array.test.ts" name="arrayToTree &gt; should preserve original item properties" time="0.000512116">
         </testcase>
     </testsuite>
-    <testsuite name="tests/utils/config-helpers.integration.test.ts" timestamp="2026-01-28T06:22:09.425Z" hostname="localhost.localdomain" tests="17" failures="0" errors="0" skipped="0" time="0.035168463">
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 完整的配置流程测试 &gt; 应该完成完整的配置保存和获取流程" time="0.006190898">
+    <testsuite name="tests/utils/bucket-policy.test.ts" timestamp="2026-02-09T08:16:09.485Z" hostname="localhost.localdomain" tests="41" failures="0" errors="0" skipped="0" time="0.028564775">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="PolicyEffect &gt; should have Allow and Deny values" time="0.002951692">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 完整的配置流程测试 &gt; 应该正确处理配置优先级" time="0.001233041">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="PolicyAction &gt; should have correct S3 action strings" time="0.00082753">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理极端长度的 URL" time="0.010813234">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="BucketPolicyConstants &gt; should have all policy type constants" time="0.000709951">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理特殊字符的 URL" time="0.00162278">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should format bucket ARN correctly" time="0.000454929">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理各种无效的 URL 格式" time="0.003102378">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should format object ARN correctly" time="0.00033966">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理 localStorage 异常" time="0.000810753">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should handle empty object path" time="0.000403195">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理 fetch 超时" time="0.000269606">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="formatResourceArn &gt; should handle wildcard object path" time="0.000310734">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理损坏的 JSON 响应" time="0.000330076">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match exact resource strings" time="0.000456434">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理部分配置响应" time="0.000361517">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match wildcard patterns" time="0.000544545">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 并发和竞态条件测试 &gt; 应该处理并发的配置获取请求" time="0.000780889">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match prefix patterns" time="0.000447075">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 并发和竞态条件测试 &gt; 应该处理快速的保存和获取操作" time="0.001679734">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match suffix patterns" time="0.000382475">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 内存泄漏和性能测试 &gt; 应该正确清理资源" time="0.001701651">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should match middle patterns" time="0.000462673">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 内存泄漏和性能测试 &gt; 应该处理大型配置对象" time="0.000251549">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="resourceMatch &gt; should handle empty pattern" time="0.000286098">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 跨浏览器兼容性测试 &gt; 应该在没有 AbortSignal.timeout 的环境中工作" time="0.000579012">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should validate correct statement" time="0.000672398">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 跨浏览器兼容性测试 &gt; 应该处理不同的 location 对象格式" time="0.000532957">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Effect" time="0.000347577">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 调试和监控功能测试 &gt; getConfigSources 应该提供完整的调试信息" time="0.001255531">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Principal" time="0.000266575">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 调试和监控功能测试 &gt; validateConfig 应该提供详细的验证信息" time="0.000959098">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Principal.AWS" time="0.000246901">
         </testcase>
-    </testsuite>
-    <testsuite name="tests/utils/config-helpers.test.ts" timestamp="2026-01-28T06:22:09.430Z" hostname="localhost.localdomain" tests="29" failures="0" errors="0" skipped="0" time="0.046404505">
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; createDefaultConfig &gt; 应该创建正确的默认配置" time="0.006169819">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Action" time="0.000240716">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; createDefaultConfig &gt; 应该处理不同的服务器主机格式" time="0.00238773">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Action" time="0.000244298">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该基于当前浏览器位置创建配置" time="0.00206323">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement without Resource" time="0.000346397">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该处理不同的协议和端口" time="0.000815977">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validateStatement &gt; should reject statement with empty Resource" time="0.000234909">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该在非浏览器环境中返回错误" time="0.001157368">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should validate correct policy" time="0.000385874">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该从 localStorage 获取保存的配置" time="0.0033149">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy without Version" time="0.000263826">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该在没有保存配置时返回 null" time="0.000814121">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy without Statement" time="0.000212142">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该处理无效的保存配置" time="0.002049937">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy with empty Statement" time="0.000211672">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该在非浏览器环境中返回错误" time="0.001208326">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="validatePolicy &gt; should reject policy with invalid statement" time="0.000234967">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该成功获取并合并服务器配置" time="0.000780173">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createAllowStatement &gt; should create valid allow statement" time="0.001392695">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该在服务器请求失败时回退到浏览器配置" time="0.000522485">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createAllowStatement &gt; should throw error for invalid statement" time="0.001520895">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该处理网络错误" time="0.00059447">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createDenyStatement &gt; should create valid deny statement" time="0.000684482">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该处理无效的服务器响应" time="0.00044319">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createDenyStatement &gt; should throw error for invalid statement" time="0.000427371">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该优先使用 localStorage 配置" time="0.002249375">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createBucketPolicy &gt; should create valid bucket policy" time="0.000491781">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在 localStorage 没有配置时使用浏览器配置" time="0.000560386">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createBucketPolicy &gt; should throw error for invalid policy" time="0.000390397">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在浏览器配置不可用时使用默认配置" time="0.000630625">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createPrivatePolicy &gt; should create private policy statements" time="0.002014019">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在所有选项失败时使用默认配置" time="0.000462159">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="createPublicPolicy &gt; should create public policy statements" time="0.001865057">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该保存有效的主机配置" time="0.00097083">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect public policy" time="0.000593334">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该拒绝无效的 URL" time="0.000531866">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect private policy" time="0.000316326">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该在非浏览器环境中返回错误" time="0.000378217">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="getBucketPolicy &gt; should detect none policy for empty statements" time="0.000255635">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; clearStoredHostConfig &gt; 应该清除保存的配置" time="0.000505303">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should set private policy" time="0.000914227">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; clearStoredHostConfig &gt; 应该在非浏览器环境中返回 false" time="0.000433937">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should set public policy" time="0.000394595">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; validateConfig &gt; 应该验证完整的配置" time="0.001972241">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should replace existing policy" time="0.000482031">
         </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; validateConfig &gt; 应该检测缺失的必需字段" time="0.001294857">
-        </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfigSources &gt; 应该返回所有配置源的状态" time="0.001071087">
-        </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getServerDefaultConfig &gt; 应该返回默认的服务器配置" time="0.000424896">
-        </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; getStoredHostConfigLegacy 应该返回配置或 null" time="0.000736182">
-        </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; getCurrentBrowserConfigLegacy 应该返回浏览器配置" time="0.000390807">
-        </testcase>
-        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; Legacy 函数应该在失败时返回 null" time="0.000335801">
+        <testcase classname="tests/utils/bucket-policy.test.ts" name="setBucketPolicy &gt; should preserve policies for other buckets" time="0.000338044">
         </testcase>
     </testsuite>
-    <testsuite name="tests/utils/error-handler.test.ts" timestamp="2026-01-28T06:22:09.440Z" hostname="localhost.localdomain" tests="21" failures="0" errors="0" skipped="0" time="0.044729684">
-        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should create error with correct properties" time="0.009833715">
+    <testsuite name="tests/utils/config-helpers.integration.test.ts" timestamp="2026-02-09T08:16:09.503Z" hostname="localhost.localdomain" tests="17" failures="0" errors="0" skipped="0" time="0.063206336">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 完整的配置流程测试 &gt; 应该完成完整的配置保存和获取流程" time="0.009400341">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should default to UNKNOWN_ERROR code" time="0.001153398">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 完整的配置流程测试 &gt; 应该正确处理配置优先级" time="0.002019095">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should store original error" time="0.000682911">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理极端长度的 URL" time="0.0247853">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should support all error codes" time="0.000667896">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理特殊字符的 URL" time="0.002669675">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse JSON error response" time="0.011620788">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理各种无效的 URL 格式" time="0.004982987">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should stringify JSON when no message property exists" time="0.001372888">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理 localStorage 异常" time="0.001280492">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse XML error with Message tag" time="0.002732359">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理 fetch 超时" time="0.000391014">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse XML error with Error tag" time="0.001985084">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理损坏的 JSON 响应" time="0.000549048">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should return plain text when not JSON or XML" time="0.001909533">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 边界条件和错误处理 &gt; 应该处理部分配置响应" time="0.000596253">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should return statusText when response body cannot be parsed" time="0.000840219">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 并发和竞态条件测试 &gt; 应该处理并发的配置获取请求" time="0.001366014">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should handle empty response body" time="0.001359265">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 并发和竞态条件测试 &gt; 应该处理快速的保存和获取操作" time="0.002749799">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should extract message from nested XML structure" time="0.001563936">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 内存泄漏和性能测试 &gt; 应该正确清理资源" time="0.002816319">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should return ConfigLoadError as-is" time="0.000467662">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 内存泄漏和性能测试 &gt; 应该处理大型配置对象" time="0.000409645">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect invalid URL errors" time="0.001663411">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 跨浏览器兼容性测试 &gt; 应该在没有 AbortSignal.timeout 的环境中工作" time="0.000875287">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect storage errors" time="0.000554352">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 跨浏览器兼容性测试 &gt; 应该处理不同的 location 对象格式" time="0.000902577">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect network errors" time="0.00051807">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 调试和监控功能测试 &gt; getConfigSources 应该提供完整的调试信息" time="0.001711271">
         </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle unknown errors" time="0.000581605">
-        </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle non-Error objects" time="0.000405393">
-        </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle null/undefined errors" time="0.0004207">
-        </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should preserve context in error message" time="0.000419563">
-        </testcase>
-        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect storage error with &quot;storage&quot; keyword" time="0.000268356">
+        <testcase classname="tests/utils/config-helpers.integration.test.ts" name="config-helpers Integration Tests &gt; 调试和监控功能测试 &gt; validateConfig 应该提供详细的验证信息" time="0.00169509">
         </testcase>
     </testsuite>
-    <testsuite name="tests/utils/functions.test.ts" timestamp="2026-01-28T06:22:09.446Z" hostname="localhost.localdomain" tests="23" failures="0" errors="0" skipped="0" time="0.02453484">
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should format bytes correctly" time="0.003577963">
+    <testsuite name="tests/utils/config-helpers.test.ts" timestamp="2026-02-09T08:16:09.511Z" hostname="localhost.localdomain" tests="29" failures="0" errors="0" skipped="0" time="0.033763018">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; createDefaultConfig &gt; 应该创建正确的默认配置" time="0.005469331">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle fractional values" time="0.000712281">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; createDefaultConfig &gt; 应该处理不同的服务器主机格式" time="0.001916795">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should format using K8s units when specified" time="0.00065187">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该基于当前浏览器位置创建配置" time="0.001272241">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle large values" time="0.000427259">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该处理不同的协议和端口" time="0.000494596">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle negative values gracefully" time="0.000665803">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getCurrentBrowserConfig &gt; 应该在非浏览器环境中返回错误" time="0.00048462">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should round to one decimal place" time="0.000508987">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该从 localStorage 获取保存的配置" time="0.001278154">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should convert string bytes to nice format" time="0.000502976">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该在没有保存配置时返回 null" time="0.000493382">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should handle invalid string input" time="0.000381575">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该处理无效的保存配置" time="0.001020879">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should use K8s units when specified" time="0.000529624">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getStoredHostConfig &gt; 应该在非浏览器环境中返回错误" time="0.00062633">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should parse numeric strings with leading zeros" time="0.000546712">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该成功获取并合并服务器配置" time="0.000554986">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should convert value and unit to bytes string" time="0.000615465">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该在服务器请求失败时回退到浏览器配置" time="0.000391335">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle fractional values" time="0.000325366">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该处理网络错误" time="0.000437617">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle K8s units when specified" time="0.000360506">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; fetchConfigFromServer &gt; 应该处理无效的服务器响应" time="0.000338214">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should return &quot;0&quot; for invalid units" time="0.000738159">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该优先使用 localStorage 配置" time="0.001866949">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle all valid units" time="0.000563307">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在 localStorage 没有配置时使用浏览器配置" time="0.000636417">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle zero value" time="0.000311601">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在浏览器配置不可用时使用默认配置" time="0.000727601">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with default length 20" time="0.001916785">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfig &gt; 应该在所有选项失败时使用默认配置" time="0.000567516">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with specified length" time="0.000919515">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该保存有效的主机配置" time="0.001075676">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with only alphanumeric characters" time="0.000434559">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该拒绝无效的 URL" time="0.000606589">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate different strings on multiple calls" time="0.002125299">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; saveHostConfig &gt; 应该在非浏览器环境中返回错误" time="0.000428158">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should handle length of 1" time="0.000588812">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; clearStoredHostConfig &gt; 应该清除保存的配置" time="0.000536386">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should handle length of 0" time="0.000270251">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; clearStoredHostConfig &gt; 应该在非浏览器环境中返回 false" time="0.000454295">
         </testcase>
-        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate strings within the character set range" time="0.003359389">
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; validateConfig &gt; 应该验证完整的配置" time="0.002049591">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; validateConfig &gt; 应该检测缺失的必需字段" time="0.001491531">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getConfigSources &gt; 应该返回所有配置源的状态" time="0.001338923">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; getServerDefaultConfig &gt; 应该返回默认的服务器配置" time="0.000462263">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; getStoredHostConfigLegacy 应该返回配置或 null" time="0.000880763">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; getCurrentBrowserConfigLegacy 应该返回浏览器配置" time="0.000458862">
+        </testcase>
+        <testcase classname="tests/utils/config-helpers.test.ts" name="config-helpers &gt; Legacy Functions &gt; Legacy 函数应该在失败时返回 null" time="0.000429066">
         </testcase>
     </testsuite>
-    <testsuite name="tests/utils/logger.test.ts" timestamp="2026-01-28T06:22:09.452Z" hostname="localhost.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.022041458">
-        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should export logger object with correct methods" time="0.013922166">
+    <testsuite name="tests/utils/error-handler.test.ts" timestamp="2026-02-09T08:16:09.522Z" hostname="localhost.localdomain" tests="21" failures="0" errors="0" skipped="0" time="0.033962198">
+        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should create error with correct properties" time="0.003656842">
         </testcase>
-        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should check isDevelopment constant" time="0.000877523">
+        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should default to UNKNOWN_ERROR code" time="0.000648435">
         </testcase>
-        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should have logger methods that can be called without errors" time="0.003062647">
+        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should store original error" time="0.00067578">
         </testcase>
-        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should handle multiple arguments without errors" time="0.000882439">
+        <testcase classname="tests/utils/error-handler.test.ts" name="ConfigLoadError &gt; should support all error codes" time="0.000801414">
         </testcase>
-        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should handle no arguments without errors" time="0.001110729">
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse JSON error response" time="0.009741527">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should stringify JSON when no message property exists" time="0.001233436">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse XML error with Message tag" time="0.001736321">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should parse XML error with Error tag" time="0.001409508">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should return plain text when not JSON or XML" time="0.001339504">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should return statusText when response body cannot be parsed" time="0.000603026">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should handle empty response body" time="0.000946084">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="parseApiError &gt; should extract message from nested XML structure" time="0.001867864">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should return ConfigLoadError as-is" time="0.000503908">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect invalid URL errors" time="0.001600639">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect storage errors" time="0.000753264">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect network errors" time="0.00066933">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle unknown errors" time="0.000732945">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle non-Error objects" time="0.000530896">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should handle null/undefined errors" time="0.000635657">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should preserve context in error message" time="0.000474915">
+        </testcase>
+        <testcase classname="tests/utils/error-handler.test.ts" name="handleConfigError &gt; should detect storage error with &quot;storage&quot; keyword" time="0.000355836">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/utils/functions.test.ts" timestamp="2026-02-09T08:16:09.531Z" hostname="localhost.localdomain" tests="23" failures="0" errors="0" skipped="0" time="0.018634249">
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should format bytes correctly" time="0.002681554">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle fractional values" time="0.000533244">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should format using K8s units when specified" time="0.000510264">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle large values" time="0.00034674">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should handle negative values gracefully" time="0.00051816">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="formatBytes &gt; should round to one decimal place" time="0.000397266">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should convert string bytes to nice format" time="0.000386266">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should handle invalid string input" time="0.000269036">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should use K8s units when specified" time="0.000425344">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="niceBytes &gt; should parse numeric strings with leading zeros" time="0.000380202">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should convert value and unit to bytes string" time="0.000503581">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle fractional values" time="0.00026458">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle K8s units when specified" time="0.000293962">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should return &quot;0&quot; for invalid units" time="0.000509964">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle all valid units" time="0.000447226">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="getBytes &gt; should handle zero value" time="0.000243012">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with default length 20" time="0.00144214">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with specified length" time="0.000701314">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate string with only alphanumeric characters" time="0.000328677">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate different strings on multiple calls" time="0.00160349">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should handle length of 1" time="0.000452863">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should handle length of 0" time="0.000202757">
+        </testcase>
+        <testcase classname="tests/utils/functions.test.ts" name="makeRandomString &gt; should generate strings within the character set range" time="0.002521559">
+        </testcase>
+    </testsuite>
+    <testsuite name="tests/utils/logger.test.ts" timestamp="2026-02-09T08:16:09.541Z" hostname="localhost.localdomain" tests="5" failures="0" errors="0" skipped="0" time="0.052541655">
+        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should export logger object with correct methods" time="0.044439255">
+        </testcase>
+        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should check isDevelopment constant" time="0.000978979">
+        </testcase>
+        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should have logger methods that can be called without errors" time="0.002957323">
+        </testcase>
+        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should handle multiple arguments without errors" time="0.000839796">
+        </testcase>
+        <testcase classname="tests/utils/logger.test.ts" name="logger &gt; should handle no arguments without errors" time="0.001068899">
         </testcase>
     </testsuite>
 </testsuites>
