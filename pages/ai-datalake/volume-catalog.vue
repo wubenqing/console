@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import DataTable from '@/components/data-table/data-table.vue'
+import DataTablePagination from '@/components/data-table/data-table-pagination.vue'
 import { useDataTable } from '@/components/data-table/useDataTable'
 import Page from '@/components/page.vue'
 import PageHeader from '@/components/page-header.vue'
@@ -13,7 +14,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { useMessage } from '@/lib/ui/message'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { Icon } from '#components'
 
 type ColumnInfo = {
@@ -56,6 +57,8 @@ const selectedValue = ref('')
 const conditionGroups = ref<ConditionGroup[]>([])
 const results = ref<Record<string, unknown>[]>([])
 const resultColumns = ref<string[]>([])
+const totalRows = ref(0)
+const queryInitialized = ref(false)
 
 const getOperatorsByDataType = (dataType: string): SelectOption[] => {
   const typeUpper = dataType.toUpperCase()
@@ -155,10 +158,13 @@ const tableColumns = computed<ColumnDef<Record<string, unknown>>[]>(() =>
   }))
 )
 
-const { table } = useDataTable({
+const { table, pagination, sorting, computedPageCount } = useDataTable({
   data: results,
   columns: tableColumns,
-  pageSize: 20,
+  pageSize: 50,
+  rowCount: totalRows,
+  manualPagination: true,
+  manualSorting: true,
 })
 
 const fetchSchema = async () => {
@@ -182,6 +188,10 @@ const refreshSchema = async () => {
   conditionGroups.value = []
   results.value = []
   resultColumns.value = []
+  totalRows.value = 0
+  queryInitialized.value = false
+  pagination.value = { ...pagination.value, pageIndex: 0 }
+  sorting.value = []
   panelActive.value = false
   pendingRelation.value = null
   pendingGroupIndex.value = null
@@ -259,16 +269,38 @@ const runQuery = async () => {
       })
     })
 
-    const response = await $fetch<{ columns: string[]; rows: Record<string, unknown>[] }>('/api/volume-catalog/query', {
-      method: 'POST',
-      body: {
-        conditions,
-        limit: 200,
-      },
+    const { pageIndex, pageSize } = pagination.value
+    const sortState = sorting.value?.[0]
+
+    const response = await $fetch<{ columns: string[]; rows: Record<string, unknown>[]; total: number }>(
+      '/api/volume-catalog/query',
+      {
+        method: 'POST',
+        body: {
+          conditions,
+          limit: pageSize,
+          offset: pageIndex * pageSize,
+          sort: sortState ? { column: sortState.id, direction: sortState.desc ? 'desc' : 'asc' } : undefined,
+        },
+      }
+    )
+
+    const parsedTotal = Number(response?.total ?? 0)
+    totalRows.value = Number.isFinite(parsedTotal) && parsedTotal >= 0 ? parsedTotal : 0
+
+    console.log('[Volume Catalog] Query completed:', {
+      total: response?.total,
+      parsedTotal,
+      totalRows: totalRows.value,
+      pageSize: pagination.value.pageSize,
+      expectedPageCount: Math.ceil(totalRows.value / pagination.value.pageSize),
+      currentPageIndex: pagination.value.pageIndex,
+      rowCount: results.value.length,
     })
 
-    resultColumns.value = response.columns || []
+    resultColumns.value = (response.columns || []).filter(col => col !== 'last_seen_generation')
     results.value = response.rows || []
+    queryInitialized.value = true
   } catch (error: any) {
     const messageText = error?.statusMessage || error?.message || 'Query failed.'
     queryError.value = messageText
@@ -276,6 +308,48 @@ const runQuery = async () => {
   } finally {
     queryLoading.value = false
   }
+}
+
+watch(
+  () => pagination.value.pageIndex,
+  (newIndex, oldIndex) => {
+    console.log('[Volume Catalog] pageIndex changed:', { oldIndex, newIndex, queryInitialized: queryInitialized.value })
+    if (!queryInitialized.value) return
+    if (queryLoading.value) return
+    if (conditionGroups.value.length === 0) return
+    runQuery()
+  }
+)
+
+watch(
+  () => pagination.value.pageSize,
+  (newSize, oldSize) => {
+    console.log('[Volume Catalog] pageSize changed:', { oldSize, newSize, queryInitialized: queryInitialized.value })
+    if (!queryInitialized.value) return
+    if (newSize !== oldSize && pagination.value.pageIndex !== 0) {
+      pagination.value = { ...pagination.value, pageIndex: 0 }
+    }
+  }
+)
+
+watch(
+  () => JSON.stringify(sorting.value),
+  (newSort, oldSort) => {
+    console.log('[Volume Catalog] sorting changed:', { oldSort, newSort, queryInitialized: queryInitialized.value })
+    if (!queryInitialized.value) return
+    if (queryLoading.value) return
+    if (conditionGroups.value.length === 0) return
+    if (newSort === oldSort) return
+    runQuery()
+  }
+)
+
+const handleNewQuery = () => {
+  queryInitialized.value = false
+  totalRows.value = 0
+  sorting.value = []
+  pagination.value = { ...pagination.value, pageIndex: 0 }
+  runQuery()
 }
 
 onMounted(() => {
@@ -428,7 +502,7 @@ onMounted(() => {
           <p v-if="queryError" class="text-sm text-destructive">{{ queryError }}</p>
 
           <!-- Create query button -->
-          <Button :disabled="queryLoading || conditionGroups.length === 0" class="self-start" @click="runQuery">
+          <Button :disabled="queryLoading || conditionGroups.length === 0" class="self-start" @click="handleNewQuery">
             Create a new query
           </Button>
         </div>
@@ -440,7 +514,7 @@ onMounted(() => {
         <CardTitle>Query Results</CardTitle>
       </CardHeader>
       <CardContent class="p-0 w-full">
-        <div class="h-[480px] overflow-x-auto rounded-md border">
+        <div class="h-[480px] overflow-x-auto rounded-md border border-b-0 rounded-b-none">
           <DataTable
             :table="table"
             :is-loading="queryLoading"
@@ -449,6 +523,7 @@ onMounted(() => {
             table-class="min-w-max"
           />
         </div>
+        <DataTablePagination :table="table" :page-count-override="computedPageCount" class="border rounded-b-md p-4" />
       </CardContent>
     </Card>
   </Page>

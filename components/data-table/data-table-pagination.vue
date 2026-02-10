@@ -13,18 +13,46 @@ const props = withDefaults(
     table: Table<TData>
     pageSizeOptions?: number[]
     class?: string
+    pageCountOverride?: number
   }>(),
   {
     pageSizeOptions: () => [10, 20, 50, 100],
     class: undefined,
+    pageCountOverride: undefined,
   }
 )
 
 const pagination = computed(() => props.table.getState().pagination)
 const currentPage = computed(() => pagination.value.pageIndex + 1)
-const pageCount = computed(() => props.table.getPageCount())
-const canPrevious = computed(() => props.table.getCanPreviousPage())
-const canNext = computed(() => props.table.getCanNextPage())
+const pageCount = computed(() => {
+  // Use override if provided (for manual pagination), otherwise use table's pageCount
+  if (props.pageCountOverride !== undefined) {
+    return props.pageCountOverride
+  }
+  // Ensure reactivity: recompute when pagination changes.
+  pagination.value.pageIndex
+  pagination.value.pageSize
+  return props.table.getPageCount()
+})
+const displayPageCount = computed(() => Math.max(pageCount.value, 1))
+const displayCurrentPage = computed(() => Math.min(currentPage.value, displayPageCount.value))
+const canPrevious = computed(() => {
+  // When pageCountOverride is provided, manually compute based on pageIndex
+  if (props.pageCountOverride !== undefined) {
+    return pagination.value.pageIndex > 0
+  }
+  pagination.value.pageIndex
+  return props.table.getCanPreviousPage()
+})
+const canNext = computed(() => {
+  // When pageCountOverride is provided, manually compute based on pageIndex and pageCount
+  if (props.pageCountOverride !== undefined) {
+    return pagination.value.pageIndex < pageCount.value - 1
+  }
+  pagination.value.pageIndex
+  pagination.value.pageSize
+  return props.table.getCanNextPage()
+})
 
 const handlePageSizeChange = (value: number | string | boolean | null) => {
   if (typeof value === 'number') {
@@ -35,6 +63,31 @@ const handlePageSizeChange = (value: number | string | boolean | null) => {
       props.table.setPageSize(parsed)
     }
   }
+}
+
+const handleNextPage = () => {
+  console.log('[Pagination] Next button clicked, current pageIndex:', pagination.value.pageIndex)
+  const newIndex = pagination.value.pageIndex + 1
+  console.log('[Pagination] Setting pageIndex to:', newIndex)
+  props.table.setPageIndex(newIndex)
+}
+
+const handlePrevPage = () => {
+  console.log('[Pagination] Prev button clicked, current pageIndex:', pagination.value.pageIndex)
+  const newIndex = pagination.value.pageIndex - 1
+  console.log('[Pagination] Setting pageIndex to:', newIndex)
+  props.table.setPageIndex(newIndex)
+}
+
+const handleFirstPage = () => {
+  console.log('[Pagination] First button clicked')
+  props.table.setPageIndex(0)
+}
+
+const handleLastPage = () => {
+  const lastIndex = Math.max(displayPageCount.value - 1, 0)
+  console.log('[Pagination] Last button clicked, target:', lastIndex)
+  props.table.setPageIndex(lastIndex)
 }
 </script>
 
@@ -54,24 +107,19 @@ const handlePageSizeChange = (value: number | string | boolean | null) => {
 
     <div class="flex items-center gap-2">
       <span class="text-sm text-muted-foreground">
-        {{ t('Page {current} of {total}', { current: pageCount === 0 ? 0 : currentPage, total: pageCount }) }}
+        {{ t('Page {current} of {total}', { current: displayCurrentPage, total: displayPageCount }) }}
       </span>
       <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" :disabled="!canPrevious" @click="props.table.setPageIndex(0)">
+        <Button variant="outline" size="sm" :disabled="!canPrevious" @click="handleFirstPage">
           {{ t('First') }}
         </Button>
-        <Button variant="outline" size="sm" :disabled="!canPrevious" @click="props.table.previousPage()">
+        <Button variant="outline" size="sm" :disabled="!canPrevious" @click="handlePrevPage">
           {{ t('Prev') }}
         </Button>
-        <Button variant="outline" size="sm" :disabled="!canNext" @click="props.table.nextPage()">
+        <Button variant="outline" size="sm" :disabled="!canNext" @click="handleNextPage">
           {{ t('Next') }}
         </Button>
-        <Button
-          variant="outline"
-          size="sm"
-          :disabled="!canNext"
-          @click="props.table.setPageIndex(Math.max(pageCount - 1, 0))"
-        >
+        <Button variant="outline" size="sm" :disabled="!canNext" @click="handleLastPage">
           {{ t('Last') }}
         </Button>
       </div>

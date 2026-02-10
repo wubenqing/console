@@ -11,6 +11,8 @@ export default defineEventHandler(async event => {
   const conditions = Array.isArray(body?.conditions) ? body.conditions : []
   const limitInput = Number(body?.limit ?? 200)
   const limit = Number.isFinite(limitInput) ? Math.min(Math.max(limitInput, 1), 1000) : 200
+  const offsetInput = Number(body?.offset ?? 0)
+  const offset = Number.isFinite(offsetInput) ? Math.max(offsetInput, 0) : 0
 
   const config = getVolumeCatalogConfig()
   const columns = await getVolumeCatalogColumns()
@@ -95,20 +97,39 @@ export default defineEventHandler(async event => {
 
   const whereClause = whereParts.length ? `WHERE ${whereParts.join(' ')}` : ''
 
+  const pool = getVolumeCatalogPool()
+
+  const countSql = `
+    SELECT COUNT(*) as total
+    FROM "${config.schema}"."${config.table}"
+    ${whereClause}
+  `
+  const countResult = await pool.query(countSql, values)
+  const totalRaw = countResult.rows?.[0]?.total
+  const totalParsed = Number(totalRaw)
+  const total = Number.isFinite(totalParsed) && totalParsed >= 0 ? totalParsed : 0
+
+  let orderByClause = ''
+  if (body?.sort?.column && allowedColumns.has(body.sort.column)) {
+    const direction = String(body.sort.direction).toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+    orderByClause = `ORDER BY "${body.sort.column}" ${direction}`
+  }
+
   values.push(limit)
+  values.push(offset)
 
   const sql = `
     SELECT *
     FROM "${config.schema}"."${config.table}"
     ${whereClause}
-    LIMIT $${values.length}
+    ${orderByClause}
+    LIMIT $${values.length - 1} OFFSET $${values.length}
   `
-
-  const pool = getVolumeCatalogPool()
   const result = await pool.query(sql, values)
 
   return {
     columns: result.fields.map((field: FieldDef) => field.name),
     rows: result.rows,
+    total,
   }
 })

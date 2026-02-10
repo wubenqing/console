@@ -17,14 +17,18 @@ import {
   useVueTable,
 } from '@tanstack/vue-table'
 import type { MaybeRefOrGetter } from 'vue'
-import { computed, h, reactive, ref, toValue, type Ref } from 'vue'
+import { computed, h, reactive, ref, toValue, watch, type Ref } from 'vue'
 
 export interface UseDataTableOptions<TData extends RowData> {
   data: MaybeRefOrGetter<TData[]>
   columns: MaybeRefOrGetter<ColumnDef<TData, any>[]>
   pageSize?: number
+  rowCount?: MaybeRefOrGetter<number>
+  pageCount?: MaybeRefOrGetter<number>
   manualPagination?: boolean
   manualSorting?: boolean
+  enableSorting?: boolean
+  autoResetPageIndex?: boolean
   getRowId?: TableOptions<TData>['getRowId']
   /**
    * Whether to enable row selection (will automatically add selection column)
@@ -40,6 +44,12 @@ export interface UseDataTableReturn<TData extends RowData> {
   selectedRows: Ref<TData[]>
   /** Array of selected row IDs (reactive, requires getRowId) */
   selectedRowIds: Ref<string[]>
+  /** Pagination state (reactive) */
+  pagination: Ref<PaginationState>
+  /** Sorting state (reactive) */
+  sorting: Ref<SortingState>
+  /** Computed page count (reactive, for manual pagination) */
+  computedPageCount: Ref<number>
 }
 
 /**
@@ -83,6 +93,23 @@ export function useDataTable<TData extends RowData>(options: UseDataTableOptions
   })
 
   const dataRef = computed(() => toValue(options.data))
+  const rowCountRef = computed(() => {
+    const val = Number(toValue(options.rowCount) ?? 0)
+    return Number.isFinite(val) && val >= 0 ? val : 0
+  })
+
+  const resolvedPageCountRef = computed(() => {
+    const provided = toValue(options.pageCount)
+    const providedNumber = Number(provided)
+    if (Number.isFinite(providedNumber) && providedNumber >= 0) {
+      return providedNumber
+    }
+
+    const pageSize = pagination.value.pageSize
+    if (!pageSize || pageSize <= 0) return 1
+    const computedCount = Math.ceil(rowCountRef.value / pageSize)
+    return Math.max(computedCount, 1)
+  })
 
   // If row selection is enabled, automatically prepend selection column to column definitions
   const columnsRef = computed(() => {
@@ -100,7 +127,7 @@ export function useDataTable<TData extends RowData>(options: UseDataTableOptions
     get columns() {
       return columnsRef.value
     },
-    state: reactive({
+    state: {
       get sorting() {
         return sorting.value
       },
@@ -113,21 +140,64 @@ export function useDataTable<TData extends RowData>(options: UseDataTableOptions
       get pagination() {
         return pagination.value
       },
-    }),
-    enableSorting: !options.manualSorting,
+    },
+    enableSorting: options.enableSorting ?? true,
     enableRowSelection: options.enableRowSelection ?? false,
     manualSorting: options.manualSorting ?? false,
     manualPagination: options.manualPagination ?? false,
+    autoResetPageIndex: options.autoResetPageIndex ?? !options.manualPagination,
+    get rowCount() {
+      return options.manualPagination ? rowCountRef.value : undefined
+    },
+    get pageCount() {
+      return options.manualPagination ? resolvedPageCountRef.value : undefined
+    },
     getRowId: options.getRowId,
     onSortingChange: updater => valueUpdater(updater, sorting),
     onColumnFiltersChange: updater => valueUpdater(updater, columnFilters),
     onRowSelectionChange: updater => valueUpdater(updater, rowSelection),
-    onPaginationChange: updater => valueUpdater(updater, pagination),
+    onPaginationChange: updater => {
+      console.log('[useDataTable] onPaginationChange called, current:', {
+        pageIndex: pagination.value.pageIndex,
+        pageSize: pagination.value.pageSize,
+      })
+      valueUpdater(updater, pagination)
+      console.log('[useDataTable] onPaginationChange after update:', {
+        pageIndex: pagination.value.pageIndex,
+        pageSize: pagination.value.pageSize,
+      })
+    },
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
+    getSortedRowModel: options.manualSorting ? undefined : getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: options.manualPagination ? undefined : getPaginationRowModel(),
   })
+
+  if (options.manualPagination) {
+    watch([rowCountRef, resolvedPageCountRef], ([newRowCount, newPageCount], [oldRowCount, oldPageCount]) => {
+      console.log('[useDataTable] rowCount/pageCount changed:', {
+        oldRowCount,
+        newRowCount,
+        oldPageCount,
+        newPageCount,
+        currentPageIndex: pagination.value.pageIndex,
+        pageSize: pagination.value.pageSize,
+      })
+
+      table.setOptions(prev => ({
+        ...prev,
+        rowCount: newRowCount,
+        pageCount: newPageCount,
+      }))
+
+      const maxPageIndex = Math.max(newPageCount - 1, 0)
+      if (pagination.value.pageIndex > maxPageIndex) {
+        console.log('[useDataTable] Resetting pageIndex from', pagination.value.pageIndex, 'to', maxPageIndex)
+        pagination.value = { ...pagination.value, pageIndex: maxPageIndex }
+      }
+      // Note: No need to "bump" pagination ref anymore since we use pageCountOverride
+    })
+  }
 
   // Compute selected row data (reactive)
   const selectedRows = computed(() => {
@@ -143,5 +213,8 @@ export function useDataTable<TData extends RowData>(options: UseDataTableOptions
     table,
     selectedRows,
     selectedRowIds,
+    pagination,
+    sorting,
+    computedPageCount: resolvedPageCountRef,
   }
 }
