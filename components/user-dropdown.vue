@@ -4,7 +4,7 @@
       <Button variant="ghost">
         <div class="flex items-center gap-3">
           <span class="flex h-8 w-8 items-center justify-center rounded-full border bg-muted">
-            <img src="~/assets/img/rustfs.png" alt="RustFS" class="h-8 w-8 rounded-full object-cover" />
+            <img src="~/assets/img/AI UniStor.png" alt="RustFS" class="h-8 w-8 rounded-full object-cover" />
           </span>
         </div>
         <Icon v-if="!isCollapsed" name="ri:more-2-line" class="h-4 w-4 text-muted-foreground" />

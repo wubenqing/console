@@ -1,0 +1,25 @@
+curl -X POST "http://localhost:4008/query/lance"   -H "Content-Type: application/json"   -d '{                                                                             "gravitino_uri": "http://172.29.119.193:18090",
+  "metalake": "lakehouse_metalake",
+  "catalog": "lance_catalog",
+  "namespace": "s1",
+  "table": "product",
+  "sql": "SELECT * FROM \"product\" LIMIT 10",
+  "skip_endpoint_check": true,
+  "endpoint_check_timeout": 3.0
+}'
+
+
+
+
+curl -X POST "http://localhost:4008/query/iceberg"   -H "Content-Type: application/json"   -d '{                                                                             "rest_uri": "http://172.29.119.193:19102",
+  "warehouse": "iceberg_catalog",
+  "namespace": "s1",
+  "table": "student2",
+  "sql": "SELECT * FROM \"student2\" LIMIT 10",
+  "fetch_storage_from_gravitino": true,
+  "gravitino_uri": "http://172.29.119.193:18090",
+  "metalake": "lakehouse_metalake",
+  "gravitino_catalog": "iceberg_catalog",
+  "skip_endpoint_check": false,
+  "endpoint_check_timeout": 3.0
+}'

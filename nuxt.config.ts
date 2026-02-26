@@ -83,6 +83,9 @@ export default defineNuxtConfig({
         // "name": "Apache-2.0",
         // "expired": 4102329600
       },
+
+      // SQL查询服务
+      sqlQueryServiceUrl: process.env.SQL_QUERY_SERVICE_URL || 'http://localhost:4008'
     },
   },
   i18n: {
