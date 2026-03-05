@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
-const appName = process.env.APP_NAME || 'RustFS'
-const baseUrl = (process.env.BASE_URL || '/rustfs/console/').replace(/\/$/, '')
-const appDescription = process.env.APP_DESCRIPTION || 'RustFS is a distributed file system written in Rust.'
+const appName = process.env.APP_NAME || 'AI UniStor'
+const baseUrl = (process.env.BASE_URL || '/aiunistor/console/').replace(/\/$/, '')
+const appDescription = process.env.APP_DESCRIPTION || 'AIUniStor is a distributed file system written in Rust.'
 const gravitinoUrl = (process.env.GRAVITINO_API_URL || 'http://localhost:8090').replace(/\/$/, '')
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -24,11 +24,7 @@ export default defineNuxtConfig({
       title: appName,
       meta: [{ name: 'description', content: appDescription }],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: baseUrl + '/favicon.ico' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: baseUrl + '/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: baseUrl + '/favicon-16x16.png' },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: baseUrl + '/apple-touch-icon.png' },
-        { rel: 'manifest', href: baseUrl + '/site.webmanifest' },
+        { rel: 'icon', type: 'image/png', href: baseUrl + '/AI.png' },
       ],
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',

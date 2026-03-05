@@ -509,7 +509,7 @@
   "Performance": "성능",
   "Platinum Service": "플래티넘 서비스",
   "Please Enter storage class": "Please Enter storage class(e.g., STANDARD, IA, GLACIER)",
-  "Please configure your RustFS server address": "RustFS 서버 주소를 구성하세요",
+  "Please configure your AIUniStor server address": "RustFS 서버 주소를 구성하세요",
   "Please enter": "입력하세요",
   "Please enter Access Key": "액세스 키를 입력하세요",
   "Please enter STS key": "STS 키를 입력하세요",

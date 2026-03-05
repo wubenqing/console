@@ -12,15 +12,15 @@ function getBaseURL(): string {
   // On client side, infer baseURL from window.location
   if (process.client) {
     const pathname = window.location.pathname
-    // If path starts with /rustfs/console, extract base path
-    const match = pathname.match(/^(\/rustfs\/console)/)
+    // If path starts with /aiunistor/console, extract base path
+    const match = pathname.match(/^(\/aiunistor\/console)/)
     if (match) {
       return match[1] + '/'
     }
   }
 
   // Default value
-  return '/rustfs/console/'
+  return '/aiunistor/console/'
 }
 
 /**
