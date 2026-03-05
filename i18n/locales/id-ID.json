@@ -509,7 +509,7 @@
   "Performance": "Kinerja",
   "Platinum Service": "Layanan Platinum",
   "Please Enter storage class": "Silakan masukkan kelas penyimpanan (misal: STANDARD, IA, GLACIER)",
-  "Please configure your RustFS server address": "Silakan konfigurasikan alamat server RustFS Anda",
+  "Please configure your AIUniStor server address": "Silakan konfigurasikan alamat server RustFS Anda",
   "Please enter": "Silakan masukkan",
   "Please enter Access Key": "Silakan masukkan Access Key",
   "Please enter STS key": "Silakan masukkan kunci STS",

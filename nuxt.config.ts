@@ -1,7 +1,7 @@
 import tailwindcss from '@tailwindcss/vite'
-const appName = process.env.APP_NAME || 'RustFS'
-const baseUrl = (process.env.BASE_URL || '/rustfs/console/').replace(/\/$/, '')
-const appDescription = process.env.APP_DESCRIPTION || 'RustFS is a distributed file system written in Rust.'
+const appName = process.env.APP_NAME || 'AI UniStor'
+const baseUrl = (process.env.BASE_URL || '/aiunistor/console/').replace(/\/$/, '')
+const appDescription = process.env.APP_DESCRIPTION || 'AIUniStor is a distributed file system written in Rust.'
 const gravitinoUrl = (process.env.GRAVITINO_API_URL || 'http://localhost:8090').replace(/\/$/, '')
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
@@ -24,11 +24,7 @@ export default defineNuxtConfig({
       title: appName,
       meta: [{ name: 'description', content: appDescription }],
       link: [
-        { rel: 'icon', type: 'image/x-icon', href: baseUrl + '/favicon.ico' },
-        { rel: 'icon', type: 'image/png', sizes: '32x32', href: baseUrl + '/favicon-32x32.png' },
-        { rel: 'icon', type: 'image/png', sizes: '16x16', href: baseUrl + '/favicon-16x16.png' },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: baseUrl + '/apple-touch-icon.png' },
-        { rel: 'manifest', href: baseUrl + '/site.webmanifest' },
+        { rel: 'icon', type: 'image/png', href: baseUrl + '/AI.png' },
       ],
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
@@ -39,6 +35,15 @@ export default defineNuxtConfig({
   // Nuxt automatically reads the files in the plugins/ directory
   plugins: [],
   runtimeConfig: {
+    volumeCatalog: {
+      host: process.env.VOLUME_CATALOG_DB_HOST || '',
+      port: Number(process.env.VOLUME_CATALOG_DB_PORT) || 5432,
+      user: process.env.VOLUME_CATALOG_DB_USER || '',
+      password: process.env.VOLUME_CATALOG_DB_PASSWORD || '',
+      database: process.env.VOLUME_CATALOG_DB_NAME || '',
+      schema: process.env.VOLUME_CATALOG_DB_SCHEMA || 'public',
+      table: process.env.VOLUME_CATALOG_DB_TABLE || 'object_table',
+    },
     public: {
       session: {
         // 临时凭证有效期
@@ -74,6 +79,9 @@ export default defineNuxtConfig({
         // "name": "Apache-2.0",
         // "expired": 4102329600
       },
+
+      // SQL查询服务
+      sqlQueryServiceUrl: process.env.SQL_QUERY_SERVICE_URL || 'http://localhost:4008'
     },
   },
   i18n: {
@@ -176,6 +184,6 @@ export default defineNuxtConfig({
     componentDir: './components/ui',
   },
   vite: {
-    plugins: [tailwindcss()],
+    plugins: [tailwindcss() as any],
   },
 })

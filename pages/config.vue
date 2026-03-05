@@ -97,15 +97,12 @@ onMounted(() => {
   <page>
     <div class="lg:p-20 flex flex-col items-center justify-center min-h-screen bg-gray-100 dark:bg-neutral-800">
       <img src="~/assets/backgrounds/scillate.svg" class="absolute inset-0 z-0 opacity-45" alt="" />
-      <div
-        class="flex-1 flex w-full z-10 max-w-7xl lg:max-h-[85vh] shadow-lg rounded-lg overflow-hidden mx-auto dark:bg-neutral-800 dark:border-neutral-700"
-      >
-        <div class="hidden lg:block w-1/2">
+      <div class="flex-1 flex w-full z-10 max-w-4xl lg:max-h-[85vh] shadow-lg rounded-lg overflow-hidden mx-auto dark:bg-neutral-800 dark:border-neutral-700">
+        <!-- 删除左侧 hero 图 -->
+        <!-- <div class="hidden lg:block w-1/2">
           <auth-heros-static></auth-heros-static>
-        </div>
-        <div
-          class="w-full lg:w-1/2 flex flex-col justify-center items-center bg-white dark:bg-neutral-900 dark:border-neutral-700 relative"
-        >
+        </div> -->
+        <div class="w-full flex flex-col justify-center items-center bg-white dark:bg-neutral-900 dark:border-neutral-700 relative">
           <div class="max-w-sm w-full p-4 sm:p-7">
             <img src="~/assets/logo.svg" class="max-w-28" alt="" />
             <div class="py-6">
@@ -113,7 +110,7 @@ onMounted(() => {
                 {{ t('Server Configuration') }}
               </h1>
               <p class="mt-2 text-sm text-gray-600 dark:text-neutral-400">
-                {{ t('Please configure your RustFS server address') }}
+                {{ t('Please configure your AIUniStor server address') }}
               </p>
             </div>
 

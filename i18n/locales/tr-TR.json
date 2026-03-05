@@ -509,7 +509,7 @@
   "Performance": "Performans",
   "Platinum Service": "Platin Hizmet",
   "Please Enter storage class": "Lütfen depolama sınıfını girin (örn. STANDARD, IA, GLACIER)",
-  "Please configure your RustFS server address": "Lütfen RustFS sunucu adresinizi yapılandırın",
+  "Please configure your AIUniStor server address": "Lütfen RustFS sunucu adresinizi yapılandırın",
   "Please enter": "Lütfen girin",
   "Please enter Access Key": "Lütfen Erişim Anahtarını girin",
   "Please enter STS key": "Lütfen STS anahtarını girin",

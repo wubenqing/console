@@ -509,7 +509,7 @@
   "Performance": "Prestazioni",
   "Platinum Service": "Servizio Platinum",
   "Please Enter storage class": "Please Enter storage class(e.g., STANDARD, IA, GLACIER)",
-  "Please configure your RustFS server address": "Configura l'indirizzo del server RustFS",
+  "Please configure your AIUniStor server address": "Configura l'indirizzo del server RustFS",
   "Please enter": "Inserisci",
   "Please enter Access Key": "Inserisci chiave di accesso",
   "Please enter STS key": "Inserisci chiave STS",
