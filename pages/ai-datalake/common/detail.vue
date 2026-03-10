@@ -3,9 +3,7 @@
     <PageHeader class="items-center">
       <h1 class="text-2xl font-bold">{{ dataset?.name }}</h1>
       <template #description>
-        <p class="text-sm text-muted-foreground mt-1">
-          数据集详情页面
-        </p>
+        <p class="text-sm text-muted-foreground mt-1">数据集详情页面</p>
       </template>
     </PageHeader>
 
@@ -172,11 +170,11 @@ onMounted(() => {
 
   // 从路由参数获取数据集名称
   const datasetName = route.query.name as string
-  
+
   // 从localStorage获取数据集信息
   const datasetsStr = localStorage.getItem('datasets')
   let datasets: any[] = []
-  
+
   if (datasetsStr) {
     try {
       datasets = JSON.parse(datasetsStr)
@@ -185,17 +183,17 @@ onMounted(() => {
       datasets = []
     }
   }
-  
+
   // 查找对应的数据集
   const foundDataset = datasets.find(ds => ds.name === datasetName)
-  
+
   if (foundDataset) {
     // 使用找到的数据集信息
     dataset.value = {
       ...foundDataset,
       chineseName: foundDataset.chineseName || '暂无中文名',
       table: foundDataset.table || foundDataset.name,
-      storageLocation: foundDataset.storageLocation || '暂无存储位置信息'
+      storageLocation: foundDataset.storageLocation || '暂无存储位置信息',
     }
   } else {
     // 如果找不到数据集，使用默认值
@@ -208,7 +206,7 @@ onMounted(() => {
       creator: '未知',
       createdAt: '未知',
       table: datasetName || '未知',
-      storageLocation: '暂无存储位置信息'
+      storageLocation: '暂无存储位置信息',
     }
   }
 
@@ -219,23 +217,23 @@ onMounted(() => {
 // 加载数据预览
 const loadPreviewData = async () => {
   if (!dataset.value) return
-  
+
   loadingPreview.value = true
-  
+
   try {
     // 根据数据集类型构建查询参数
     let queryType: 'iceberg' | 'lance'
     let queryParams: Record<string, any>
-    
+
     // 根据数据集格式确定查询类型
     if (dataset.value.format && dataset.value.format.toLowerCase().includes('iceberg')) {
       queryType = 'iceberg'
-      
+
       // 解析 source 字段
       let warehouse = dataset.value.warehouse || 'iceberg_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -244,7 +242,7 @@ const loadPreviewData = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         rest_uri: 'http://172.29.119.193:19102',
         warehouse: warehouse,
@@ -255,16 +253,16 @@ const loadPreviewData = async () => {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
         gravitino_catalog: dataset.value.catalog || 'iceberg_catalog',
-        skip_endpoint_check: false
+        skip_endpoint_check: false,
       }
     } else if (dataset.value.format && dataset.value.format.toLowerCase().includes('lance')) {
       queryType = 'lance'
-      
+
       // 解析 source 字段
       let catalog = dataset.value.catalog || 'lance_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -273,7 +271,7 @@ const loadPreviewData = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
@@ -281,17 +279,17 @@ const loadPreviewData = async () => {
         namespace: namespace,
         table: table,
         sql: `SELECT * FROM "${table}" LIMIT 10`,
-        skip_endpoint_check: true
+        skip_endpoint_check: true,
       }
     } else {
       // 默认使用iceberg查询
       queryType = 'iceberg'
-      
+
       // 解析 source 字段
       let warehouse = dataset.value.warehouse || 'iceberg_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -300,7 +298,7 @@ const loadPreviewData = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         rest_uri: 'http://172.29.119.193:19102',
         warehouse: warehouse,
@@ -311,34 +309,34 @@ const loadPreviewData = async () => {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
         gravitino_catalog: dataset.value.catalog || 'iceberg_catalog',
-        skip_endpoint_check: false
+        skip_endpoint_check: false,
       }
     }
-    
+
     // 发送请求获取数据 - 使用POST方法
     const response = await $fetch('/api/sql-query-proxy', {
       method: 'POST',
       body: {
         type: queryType,
-        params: queryParams
-      }
+        params: queryParams,
+      },
     })
-    
+
     // 处理返回的结果
     if (response && response.result) {
       // 将结果转换为表格格式
       const result = response.result
       const keys = Object.keys(result)
-      
+
       // 检查是否有键值，避免访问 undefined
       if (keys.length === 0) {
         previewData.value = []
         return
       }
-      
+
       // 设置列头
       columnHeaders.value = [...keys]
-      
+
       // 转换数据格式
       const rows = []
       // 检查 keys 是否为空数组，并确保 result 中确实包含该键
@@ -346,12 +344,12 @@ const loadPreviewData = async () => {
       if (keys.length > 0 && keys[0] !== undefined && result[keys[0]] !== undefined) {
         rowCount = result[keys[0]]?.length || 0
       }
-      
+
       for (let i = 0; i < rowCount; i++) {
         const row: any = {}
         keys.forEach(key => {
           // 添加额外的安全检查，确保 key 存在于 result 中
-          if(result[key] !== undefined) {
+          if (result[key] !== undefined) {
             row[key] = result[key][i]
           } else {
             row[key] = null // 或其他默认值
@@ -359,7 +357,7 @@ const loadPreviewData = async () => {
         })
         rows.push(row)
       }
-      
+
       previewData.value = rows
     }
   } catch (error: any) {
@@ -367,7 +365,7 @@ const loadPreviewData = async () => {
     // 如果加载失败，显示错误信息或默认数据
     previewData.value = []
     columnHeaders.value = []
-    
+
     // 显示用户友好的错误消息
     let errorMessage = '加载数据预览失败'
     if (error && error.data && error.data.statusMessage) {
@@ -389,26 +387,26 @@ const executeQuery = async () => {
     alert('请输入SQL查询语句')
     return
   }
-  
+
   executingQuery.value = true
-  
+
   try {
     if (!dataset.value) {
       throw new Error('数据集信息未加载')
     }
-    
+
     // 根据数据集格式确定查询类型
     let queryType: 'iceberg' | 'lance'
     let queryParams: Record<string, any>
-    
+
     if (dataset.value.format && dataset.value.format.toLowerCase().includes('iceberg')) {
       queryType = 'iceberg'
-      
+
       // 解析 source 字段
       let warehouse = dataset.value.warehouse || 'iceberg_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -417,7 +415,7 @@ const executeQuery = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         rest_uri: 'http://172.29.119.193:19102',
         warehouse: warehouse,
@@ -428,16 +426,16 @@ const executeQuery = async () => {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
         gravitino_catalog: dataset.value.catalog || 'iceberg_catalog',
-        skip_endpoint_check: false
+        skip_endpoint_check: false,
       }
     } else if (dataset.value.format && dataset.value.format.toLowerCase().includes('lance')) {
       queryType = 'lance'
-      
+
       // 解析 source 字段
       let catalog = dataset.value.catalog || 'lance_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -446,7 +444,7 @@ const executeQuery = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
@@ -454,17 +452,17 @@ const executeQuery = async () => {
         namespace: namespace,
         table: table,
         sql: sqlQuery.value,
-        skip_endpoint_check: true
+        skip_endpoint_check: true,
       }
     } else {
       // 默认使用iceberg查询
       queryType = 'iceberg'
-      
+
       // 解析 source 字段
       let warehouse = dataset.value.warehouse || 'iceberg_catalog'
       let namespace = dataset.value.namespace || 's1'
       let table = dataset.value.table || dataset.value.name
-      
+
       if (dataset.value.source) {
         const parts = dataset.value.source.split('.')
         if (parts.length >= 3) {
@@ -473,7 +471,7 @@ const executeQuery = async () => {
           table = parts[2]
         }
       }
-      
+
       queryParams = {
         rest_uri: 'http://172.29.119.193:19102',
         warehouse: warehouse,
@@ -484,32 +482,32 @@ const executeQuery = async () => {
         gravitino_uri: 'http://172.29.119.193:18090',
         metalake: dataset.value.metalake || 'lakehouse_metalake',
         gravitino_catalog: dataset.value.catalog || 'iceberg_catalog',
-        skip_endpoint_check: false
+        skip_endpoint_check: false,
       }
     }
-    
+
     // 发送请求执行查询 - 统一使用POST方法
     const response = await $fetch('/api/sql-query-proxy', {
       method: 'POST',
       body: {
         type: queryType,
-        params: queryParams
-      }
+        params: queryParams,
+      },
     })
-    
+
     // 处理返回的结果
     if (response && response.result) {
       // 将结果转换为表格格式
       const result = response.result
       const keys = Object.keys(result)
-      
+
       // 设置列头
       queryColumnHeaders.value = [...keys]
-      
+
       // 记录查询信息
       lastExecutedQuery.value = response.query
       queryRowCount.value = response.row_count
-      
+
       // 转换数据格式
       const rows = []
       // 检查 keys 是否为空数组，并确保 result 中确实包含该键
@@ -517,12 +515,12 @@ const executeQuery = async () => {
       if (keys.length > 0 && keys[0] !== undefined && result[keys[0]] !== undefined) {
         rowCount = result[keys[0]]?.length || 0
       }
-      
+
       for (let i = 0; i < rowCount; i++) {
         const row: any = {}
         keys.forEach(key => {
           // 添加额外的安全检查，确保 key 存在于 result 中
-          if(result[key] !== undefined) {
+          if (result[key] !== undefined) {
             row[key] = result[key][i]
           } else {
             row[key] = null // 或其他默认值
@@ -530,7 +528,7 @@ const executeQuery = async () => {
         })
         rows.push(row)
       }
-      
+
       queryResult.value = rows
     }
   } catch (error: any) {
@@ -547,7 +545,6 @@ const executeQuery = async () => {
   }
 }
 
-
 const goBack = () => {
   router.push('/ai-datalake/lakehouse')
 }
@@ -557,11 +554,10 @@ const switchTab = (tab: string) => {
   activeTab.value = tab
   // 更新 URL 参数
   router.replace({
-    query: { ...route.query, tab }
+    query: { ...route.query, tab },
   })
 }
 const useDataset = () => {
   alert('正在使用数据集...')
 }
-
 </script>

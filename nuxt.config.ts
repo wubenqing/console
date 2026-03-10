@@ -23,9 +23,7 @@ export default defineNuxtConfig({
     head: {
       title: appName,
       meta: [{ name: 'description', content: appDescription }],
-      link: [
-        { rel: 'icon', type: 'image/png', href: baseUrl + '/AI.png' },
-      ],
+      link: [{ rel: 'icon', type: 'image/png', href: baseUrl + '/AI.png' }],
       charset: 'utf-8',
       viewport: 'width=device-width, initial-scale=1',
     },
@@ -74,6 +72,16 @@ export default defineNuxtConfig({
         url: gravitinoUrl,
       },
 
+      grafana: {
+        url: (process.env.GRAFANA_URL || 'http://localhost:3000').replace(/\/$/, ''),
+        dashboard: {
+          id: process.env.GRAFANA_DASHBOARD_ID || 'rustfs-s3',
+          slug: process.env.GRAFANA_DASHBOARD_SLUG || 'rustfs',
+        },
+        refreshInterval: process.env.GRAFANA_REFRESH || '15s',
+        timeRange: process.env.GRAFANA_TIME_RANGE || 'now-1h',
+      },
+
       // 授权信息
       license: {
         // "name": "Apache-2.0",
@@ -81,7 +89,7 @@ export default defineNuxtConfig({
       },
 
       // SQL查询服务
-      sqlQueryServiceUrl: process.env.SQL_QUERY_SERVICE_URL || 'http://localhost:4008'
+      sqlQueryServiceUrl: process.env.SQL_QUERY_SERVICE_URL || 'http://localhost:4008',
     },
   },
   i18n: {

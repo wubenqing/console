@@ -2,7 +2,7 @@
   <Page>
     <PageHeader class="items-center">
       <h1 class="text-2xl font-bold">Lakehouse</h1>
-      
+
       <template #description>
         <p class="text-sm text-muted-foreground mt-1">
           面向AI开发人员的多模态数据集合，为模型训练、评估或研究等场景提供数据支撑。
@@ -10,11 +10,7 @@
       </template>
 
       <template #actions>
-        <Button
-          variant="outline"
-          @click="toggleGuide"
-          class="flex items-center space-x-1"
-        >
+        <Button variant="outline" @click="toggleGuide" class="flex items-center space-x-1">
           <Icon icon="mdi:help-circle-outline" class="w-4 h-4" />
           <span>{{ isGuideOpen ? '收起引导' : '展开引导' }}</span>
         </Button>
@@ -26,7 +22,7 @@
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <!-- 第1步：创建数据集 -->
         <div class="text-center p-4 border rounded-lg">
-          <h3 class="font-semibold text-lg">第1步<br><span class="text-sm text-gray-500">创建数据集</span></h3>
+          <h3 class="font-semibold text-lg">第1步<br /><span class="text-sm text-gray-500">创建数据集</span></h3>
           <p class="mt-2 text-sm text-gray-600">通过指定数据所在的存储目录，创建数据集。</p>
           <div class="mt-3 flex justify-center">
             <div class="bg-gray-100 p-3 rounded-md w-32 h-20 flex items-center justify-center">
@@ -37,8 +33,10 @@
 
         <!-- 第2步：数据加工 -->
         <div class="text-center p-4 border rounded-lg">
-          <h3 class="font-semibold text-lg">第2步<br><span class="text-sm text-gray-500">数据加工</span></h3>
-          <p class="mt-2 text-sm text-gray-600">快速查询和编辑，大量数据可使用工作流中的内置算子，进行批量清洗。算子 SDK</p>
+          <h3 class="font-semibold text-lg">第2步<br /><span class="text-sm text-gray-500">数据加工</span></h3>
+          <p class="mt-2 text-sm text-gray-600">
+            快速查询和编辑，大量数据可使用工作流中的内置算子，进行批量清洗。算子 SDK
+          </p>
           <div class="mt-3 flex justify-center">
             <div class="bg-gray-100 p-3 rounded-md w-32 h-20 flex items-center justify-center">
               <Icon icon="mdi:chart-bar" class="w-8 h-8 text-green-500" />
@@ -48,7 +46,7 @@
 
         <!-- 第3步：使用数据集 -->
         <div class="text-center p-4 border rounded-lg">
-          <h3 class="font-semibold text-lg">第3步<br><span class="text-sm text-gray-500">使用数据集</span></h3>
+          <h3 class="font-semibold text-lg">第3步<br /><span class="text-sm text-gray-500">使用数据集</span></h3>
           <p class="mt-2 text-sm text-gray-600">调用数据集的存储路径，也可直接另存到火山方舟数据集。数据源SDK</p>
           <div class="mt-3 flex justify-center">
             <div class="bg-gray-100 p-3 rounded-md w-32 h-20 flex items-center justify-center">
@@ -61,7 +59,11 @@
 
     <!-- 主要操作区域 -->
     <div class="flex justify-between items-center mb-4">
-      <Button variant="default" @click="createDataset" class="bg-blue-600 hover:bg-blue-700 text-white border-none rounded-md px-4 py-2 flex items-center">
+      <Button
+        variant="default"
+        @click="createDataset"
+        class="bg-blue-600 hover:bg-blue-700 text-white border-none rounded-md px-4 py-2 flex items-center"
+      >
         <Icon icon="mdi:plus" class="w-4 h-4 mr-2" />
         创建数据集
       </Button>
@@ -89,7 +91,10 @@
         </TableHeader>
         <TableBody>
           <TableRow v-for="dataset in paginatedDatasets" :key="dataset.id || dataset.name">
-            <TableCell class="font-medium cursor-pointer hover:text-blue-600" @click="router.push(`/ai-datalake/common/detail?name=${encodeURIComponent(dataset.name)}`)">
+            <TableCell
+              class="font-medium cursor-pointer hover:text-blue-600"
+              @click="router.push(`/ai-datalake/common/detail?name=${encodeURIComponent(dataset.name)}`)"
+            >
               {{ dataset.name }}
             </TableCell>
             <TableCell>
@@ -100,7 +105,12 @@
             <TableCell>{{ dataset.createdAt }}</TableCell>
             <TableCell>{{ dataset.updatedAt }}</TableCell>
             <TableCell>
-              <Button variant="link" size="sm" @click="router.push(`/ai-datalake/common/detail?name=${encodeURIComponent(dataset.name)}`)">详情</Button>
+              <Button
+                variant="link"
+                size="sm"
+                @click="router.push(`/ai-datalake/common/detail?name=${encodeURIComponent(dataset.name)}`)"
+                >详情</Button
+              >
               <Button variant="link" size="sm" @click="sqlQuery(dataset)">SQL查询</Button>
               <Button variant="link" size="sm" @click="deleteDataset(dataset)">删除数据集</Button>
             </TableCell>
@@ -218,8 +228,8 @@ const loadDatasetsFromStorage = () => {
         size: '2.79 MB',
         creator: 'SYSTEM',
         createdAt: '2025-04-12 15:45:04',
-        updatedAt: '2025-11-25 23:00:00'
-      }
+        updatedAt: '2025-11-25 23:00:00',
+      },
     ]
   }
   total.value = datasets.value.length
@@ -287,17 +297,17 @@ const deleteDataset = async (dataset: any) => {
       if (datasetsStr) {
         existingDatasets = JSON.parse(datasetsStr)
       }
-      
+
       // 过滤掉要删除的数据集
       const updatedDatasets = existingDatasets.filter((d: any) => d.name !== dataset.name)
-      
+
       // 更新localStorage
       localStorage.setItem('datasets', JSON.stringify(updatedDatasets))
-      
+
       // 更新本地数据
       datasets.value = updatedDatasets
       total.value = updatedDatasets.length
-      
+
       // 显示成功消息
       message.success(`数据集 "${dataset.name}" 已成功删除`)
     } catch (error) {
@@ -306,8 +316,6 @@ const deleteDataset = async (dataset: any) => {
     }
   }
 }
-
-
 </script>
 
 <style scoped>

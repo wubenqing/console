@@ -46,9 +46,29 @@ API_BASE_URL=http://localhost:9000/rustfs/admin/v3
 SERVER_HOST=http://localhost:9000
 S3_REGION=us-east-1
 S3_ENDPOINT=http://localhost:9000
+GRAFANA_URL=http://172.24.37.159:23000
+GRAFANA_DASHBOARD_ID=rustfs-s3
+GRAFANA_DASHBOARD_SLUG=rustfs
+GRAFANA_REFRESH=15s
+GRAFANA_TIME_RANGE=now-1h
 ```
 
 Configuration is auto-detected from server config, localStorage, or browser host.
+
+The dashboard route embeds Grafana with the public runtime config above. If your Grafana deployment differs, override those values in `.env` before starting the app.
+
+Grafana embedding requirements:
+
+- Allow the Console origin to load Grafana in an iframe. This usually means setting Grafana `allow_embedding = true` and configuring CORS or a reverse proxy for the Console origin.
+- If Grafana requires authentication, prefer a same-origin reverse proxy or SSO flow so the embedded iframe does not prompt the user unexpectedly.
+- After changing Grafana-related environment variables, restart `pnpm dev` or your production process so Nuxt reloads runtime config.
+
+Manual verification notes:
+
+- Open `/dashboard` and confirm the iframe loads the expected dashboard.
+- Change `GRAFANA_URL` in `.env`, restart the app, and confirm the iframe points to the new Grafana instance.
+- Resize the window at desktop resolutions such as `1920x1080` and `1366x768` and check that the page does not introduce extra scrollbars.
+- Use the Grafana side-panel filters and time range controls to confirm the embedded dashboard stays interactive.
 
 ### Production Build
 
