@@ -12,6 +12,11 @@ export default [
     icon: 'ri:database-2-line',
     children: [
       {
+        label: 'LakeToken',
+        to: '/ai-datalake/laketoken',
+        icon: 'ri:secure-payment-line',
+      },
+      {
         label: 'Lakebase',
         to: '/ai-datalake/lakebase',
         icon: 'ri:stack-line',
