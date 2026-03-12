@@ -512,7 +512,7 @@
   "paused": "Paused",
   "Pending": "Pending({count})",
   "Pending Deletion": "Pending Deletion",
-  "Performance": "Performance",
+  "Performance": "Running Status",
   "Platinum Service": "Platinum Service",
   "Please Enter storage class": "Please Enter storage class(e.g., STANDARD, IA, GLACIER)",
   "Please configure your AIUniStor server address": "Please configure your AIUniStor server address",

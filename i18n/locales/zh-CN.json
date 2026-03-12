@@ -513,7 +513,7 @@
   "paused": "已暂停",
   "Pending": "待处理({count})",
   "Pending Deletion": "删除中",
-  "Performance": "性能",
+  "Performance": "运行状态",
   "Platinum Service": "白金服务",
   "Please Enter storage class": "请输入存储类型",
   "Please configure your AIUniStor server address": "请配置您的AI UniStor服务器地址",
