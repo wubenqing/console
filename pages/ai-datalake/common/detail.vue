@@ -153,7 +153,7 @@ const dataset = ref<any>(null)
 const previewData = ref<any[]>([])
 const columnHeaders = ref<string[]>([])
 const activeTab = ref<string>('files') // 默认为 files
-const sqlQuery = ref<string>('SELECT * FROM dataset LIMIT 20;')
+const sqlQuery = ref<string>('')
 const queryResult = ref<any[]>([])
 const queryColumnHeaders = ref<string[]>([])
 const lastExecutedQuery = ref<string>('')
@@ -208,6 +208,15 @@ onMounted(() => {
       table: datasetName || '未知',
       storageLocation: '暂无存储位置信息',
     }
+  }
+
+  // 设置默认查询语句
+  if (dataset.value?.source) {
+    const parts = dataset.value.source.split('.')
+    const tableName = parts[parts.length - 1] // 获取最后一个部分
+    sqlQuery.value = `SELECT * FROM "${tableName}" LIMIT 20;`
+  } else {
+    sqlQuery.value = 'SELECT * FROM dataset LIMIT 20;'
   }
 
   // 加载数据预览
