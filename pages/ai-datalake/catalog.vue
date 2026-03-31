@@ -35,6 +35,7 @@ import {
 import { useMessage } from '@/lib/ui/message'
 import { Icon } from '#components'
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const asString = (value: unknown): string | undefined => {
   if (Array.isArray(value)) {
@@ -49,6 +50,7 @@ const router = useRouter()
 
 const api = useGravitino()
 const message = useMessage()
+const { t } = useI18n()
 
 const parseInUse = (value: unknown): boolean | undefined => {
   if (typeof value === 'string') {
@@ -293,7 +295,7 @@ const currentMetalake = computed<string | null>({
     else {
       const m = metalakes.value.find(x => x?.name === value)
       if (m && getResourceInUse(m) === false) {
-        message.warning('This metalake is disabled (in-use=false)')
+        message.warning(t('This metalake is disabled (in-use=false)'))
         return
       }
       goToMetalake(value)
@@ -398,7 +400,7 @@ const removeMetalakePropRow = (idx: number) => {
 const submitCreateMetalake = async () => {
   const name = createMetalakeName.value.trim()
   if (!name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -409,13 +411,13 @@ const submitCreateMetalake = async () => {
       comment: createMetalakeComment.value,
       properties: metalakePropsObject.value,
     })
-    message.success('Metalake created')
+    message.success(t('Metalake created'))
     createMetalakeOpen.value = false
     // Only refresh the metalakes list without navigating away
     const res = await api.getMetalakes()
     metalakes.value = res.metalakes || []
   } catch (err: any) {
-    message.error(err?.message || 'Failed to create metalake')
+    message.error(err?.message || t('Failed to create metalake'))
   } finally {
     isLoading.value = false
   }
@@ -446,7 +448,7 @@ const loadSchemasForCatalog = async (metalake: string, catalogName: string, type
       [cKey]: (schemasRes.identifiers || []).map((i: any) => i.name ?? i),
     }
   } catch {
-    message.error('Failed to load schemas')
+    message.error(t('Failed to load schemas'))
   } finally {
     setTreeLoading(`schemas:${cKey}`, false)
   }
@@ -478,7 +480,7 @@ const loadEntitiesForSchema = async (metalake: string, catalogName: string, type
       [sKey]: (listRes.identifiers || []).map((i: any) => i.name ?? i),
     }
   } catch {
-    message.error('Failed to load entities')
+    message.error(t('Failed to load entities'))
   } finally {
     setTreeLoading(`entities:${sKey}`, false)
   }
@@ -519,7 +521,7 @@ const toggleMetalakeInUse = async (next: boolean) => {
     }
     // refreshMetalakeContext is now called inside refreshAll if context active
   } catch (err: any) {
-    message.error('Failed to update in-use')
+    message.error(t('Failed to update in-use'))
   } finally {
     isLoading.value = false
   }
@@ -548,7 +550,7 @@ const toggleMetalakeInUseFromList = async (metalake: string, next: boolean) => {
   } catch {
     // Revert optimistic update on failure
     metalakes.value = previous
-    message.error('Failed to update in-use')
+    message.error(t('Failed to update in-use'))
   } finally {
     isLoading.value = false
   }
@@ -584,7 +586,7 @@ const toggleCatalogInUse = async (catalogName: string, next: boolean) => {
   } catch (err: any) {
     // Revert optimistic update on failure
     catalogs.value = previous
-    message.error('Failed to update in-use')
+    message.error(t('Failed to update in-use'))
   } finally {
     isLoading.value = false
   }
@@ -638,14 +640,14 @@ const openMetalakeEdit = async (name: string) => {
     editMetalakeProps.value = propsObjectToRows(metalake?.properties)
     editMetalakeOpen.value = true
   } catch {
-    message.error('Failed to load metalake details')
+    message.error(t('Failed to load metalake details'))
   }
 }
 
 const tryOpenMetalakeEdit = async (name: string, inUse?: boolean) => {
   const resolvedInUse = inUse ?? getResourceInUse(metalakeDetail.value || currentMetalakeObj.value)
   if (resolvedInUse === false) {
-    message.warning('This metalake is disabled (in-use=false) and cannot be edited')
+    message.warning(t('This metalake is disabled (in-use=false) and cannot be edited'))
     return
   }
   await openMetalakeEdit(name)
@@ -661,7 +663,7 @@ const submitEditMetalake = async () => {
     properties: propsRowsToObject(editMetalakeProps.value),
   }
   if (!next.name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -669,10 +671,10 @@ const submitEditMetalake = async () => {
     isLoading.value = true
     const updates = genUpdates(original, next)
     await api.updateMetalake(original?.name ?? next.name, { updates })
-    message.success('Metalake updated')
+    message.success(t('Metalake updated'))
     editMetalakeOpen.value = false
   } catch (err: any) {
-    message.error(err?.message || 'Failed to update metalake')
+    message.error(err?.message || t('Failed to update metalake'))
   } finally {
     isLoading.value = false
   }
@@ -695,7 +697,7 @@ const refreshAll = async () => {
       await refreshMetalakeContext(q.value.metalake).catch(console.error)
     }
   } catch (err: any) {
-    message.error('Failed to load metalakes')
+    message.error(t('Failed to load metalakes'))
   } finally {
     isLoading.value = false
   }
@@ -711,7 +713,7 @@ const refreshMetalakeContext = async (metalake: string) => {
     metalakeDetail.value = metalakeRes?.metalake ?? metalakeRes ?? null
     catalogs.value = catalogsRes.catalogs || []
   } catch (err: any) {
-    message.error('Failed to load catalogs')
+    message.error(t('Failed to load catalogs'))
   } finally {
     isLoading.value = false
   }
@@ -733,7 +735,7 @@ const refreshCatalogContext = async (metalake: string, catalog: string, type: st
     modelVersions.value = []
     versionDetail.value = null
   } catch (err: any) {
-    message.error('Failed to load schemas')
+    message.error(t('Failed to load schemas'))
   } finally {
     isLoading.value = false
   }
@@ -771,7 +773,7 @@ const refreshSchemaContext = async (metalake: string, catalog: string, type: str
       Object.entries(treeEntitiesBySchemaKey.value).filter(([k]) => k !== sKey)
     )
   } catch (err: any) {
-    message.error('Failed to load schema/entities')
+    message.error(t('Failed to load schema/entities'))
   } finally {
     isLoading.value = false
   }
@@ -800,7 +802,7 @@ const refreshEntityDetails = async (metalake: string, catalog: string, type: str
       entityDetail.value = null
     }
   } catch (err: any) {
-    message.error('Failed to load details')
+    message.error(t('Failed to load details'))
   } finally {
     isLoading.value = false
   }
@@ -818,7 +820,7 @@ const refreshVersionDetails = async (
     const res = await api.getVersion(metalake, catalog, schema, model, version)
     versionDetail.value = res
   } catch (err: any) {
-    message.error('Failed to load version')
+    message.error(t('Failed to load version'))
   } finally {
     isLoading.value = false
   }
@@ -862,7 +864,7 @@ watch(
     // If user pasted a URL with a disabled metalake, do not drill down.
     const selectedMetalake = metalakes.value.find(m => m?.name === metalake)
     if (selectedMetalake && getResourceInUse(selectedMetalake) === false) {
-      message.warning('This metalake is disabled (in-use=false)')
+      message.warning(t('This metalake is disabled (in-use=false)'))
       goToMetalakeList()
       return
     }
@@ -970,33 +972,54 @@ watch(
 const copyIdentity = async () => {
   const text = identityString.value
   if (!text) {
-    message.warning('Nothing to copy')
+    message.warning(t('Nothing to copy'))
     return
   }
   try {
     if (navigator.clipboard && navigator.clipboard.writeText) {
       await navigator.clipboard.writeText(text)
-      message.success('Copied')
+      message.success(t('Copied'))
     } else {
-      message.warning('Clipboard API not available')
+      message.warning(t('Clipboard API not available'))
     }
   } catch {
-    message.error('Copy failed')
+    message.error(t('Copy failed'))
   }
 }
 
 const typeLabel = (type?: string) => {
   switch (type) {
     case 'relational':
-      return 'Table'
+      return t('Table')
     case 'fileset':
-      return 'Fileset'
+      return t('Fileset')
     case 'messaging':
-      return 'Messaging'
+      return t('Messaging')
     case 'model':
-      return 'Model'
+      return t('Model')
     default:
-      return 'Unknown'
+      return t('Unknown')
+  }
+}
+
+const resourceKindLabel = (kind: ResourceKind) => {
+  switch (kind) {
+    case 'metalake':
+      return t('Metalake')
+    case 'catalog':
+      return t('Catalog')
+    case 'schema':
+      return t('Schema')
+    case 'table':
+      return t('Table')
+    case 'fileset':
+      return t('Fileset')
+    case 'topic':
+      return t('Topic')
+    case 'model':
+      return t('Model')
+    case 'version':
+      return t('Version')
   }
 }
 
@@ -1032,51 +1055,51 @@ const detailsRows = computed(() => {
   const rows: Array<{ label: string; value: string }> = []
 
   const name = getResourceName(target)
-  if (name) rows.push({ label: 'Name', value: name })
+  if (name) rows.push({ label: t('Name'), value: name })
 
   // For catalog detail, show Type and Provider at the beginning (like Gravitino)
   if (currentLevel.value === 'catalog') {
     const type = pickFirstString(target?.type)
-    if (type) rows.push({ label: 'Type', value: typeLabel(type) })
+    if (type) rows.push({ label: t('Type'), value: typeLabel(type) })
 
     const provider = pickFirstString(target?.provider)
-    if (provider) rows.push({ label: 'Provider', value: provider })
+    if (provider) rows.push({ label: t('Provider'), value: provider })
   }
 
   const comment = pickFirstString(target?.comment)
-  if (comment) rows.push({ label: 'Comment', value: comment })
+  if (comment) rows.push({ label: t('Comment'), value: comment })
 
   // When we render an interactive switch in the Details header (metalake/catalog),
   // avoid duplicating it as a static row.
   const inUse = getResourceInUse(target)
   if (inUse != null && currentLevel.value !== 'metalake' && currentLevel.value !== 'catalog') {
-    rows.push({ label: 'In use', value: String(inUse) })
+    rows.push({ label: t('In use'), value: String(inUse) })
   }
 
   // For non-catalog levels, show provider and type after comment if available
   if (currentLevel.value !== 'catalog') {
     const provider = pickFirstString(target?.provider)
-    if (provider) rows.push({ label: 'Provider', value: provider })
+    if (provider) rows.push({ label: t('Provider'), value: provider })
 
     const type = pickFirstString(target?.type)
-    if (type) rows.push({ label: 'Type', value: typeLabel(type) })
+    if (type) rows.push({ label: t('Type'), value: typeLabel(type) })
   }
 
   const createdBy = getCreatedBy(target)
-  if (createdBy) rows.push({ label: 'Created by', value: createdBy })
+  if (createdBy) rows.push({ label: t('Created by'), value: createdBy })
 
   const createdAt = getCreatedAt(target)
-  if (createdAt) rows.push({ label: 'Created at', value: createdAt })
+  if (createdAt) rows.push({ label: t('Created at'), value: createdAt })
 
   const lastModifiedBy = getLastModifiedBy(target)
-  if (lastModifiedBy) rows.push({ label: 'Last modified by', value: lastModifiedBy })
+  if (lastModifiedBy) rows.push({ label: t('Last modified by'), value: lastModifiedBy })
 
   const lastModifiedAt = getLastModifiedAt(target)
-  if (lastModifiedAt) rows.push({ label: 'Last modified at', value: lastModifiedAt })
+  if (lastModifiedAt) rows.push({ label: t('Last modified at'), value: lastModifiedAt })
 
   const properties = target?.properties
   if (properties && typeof properties === 'object') {
-    rows.push({ label: 'Properties', value: String(Object.keys(properties).length) })
+    rows.push({ label: t('Properties'), value: String(Object.keys(properties).length) })
   }
 
   return rows
@@ -1135,27 +1158,27 @@ const breadcrumbText = computed(() => {
 const listTabLabel = computed(() => {
   switch (currentLevel.value) {
     case 'metalake':
-      return 'Catalogs'
+      return t('Catalogs')
     case 'catalog':
-      return 'Schemas'
+      return t('Schemas')
     case 'schema': {
       // Gravitino shows Tables/Filesets/Topics/Models depending on catalog type
-      const t = q.value.type
-      if (t === 'relational') return 'Tables'
-      if (t === 'fileset') return 'Filesets'
-      if (t === 'messaging') return 'Topics'
-      if (t === 'model') return 'Models'
-      return 'Entities'
+      const entityType = q.value.type
+      if (entityType === 'relational') return t('Tables')
+      if (entityType === 'fileset') return t('Filesets')
+      if (entityType === 'messaging') return t('Topics')
+      if (entityType === 'model') return t('Models')
+      return t('Entities')
     }
     case 'entity':
-      if (q.value.type === 'relational') return 'Columns'
-      if (q.value.type === 'fileset') return 'Files'
-      if (q.value.type === 'model') return 'Versions'
-      return 'Details'
+      if (q.value.type === 'relational') return t('Columns')
+      if (q.value.type === 'fileset') return t('Files')
+      if (q.value.type === 'model') return t('Versions')
+      return t('Details')
     case 'version':
-      return 'Details'
+      return t('Details')
     default:
-      return 'Catalogs'
+      return t('Catalogs')
   }
 })
 
@@ -1230,7 +1253,7 @@ const loadFilesetFiles = async () => {
     filesetFiles.value = Array.isArray(files) ? files : []
   } catch (err: any) {
     filesetFiles.value = []
-    message.error(err?.message || 'Failed to load files')
+    message.error(err?.message || t('Failed to load files'))
   } finally {
     filesetFilesLoading.value = false
   }
@@ -1738,23 +1761,23 @@ const submitCreateCatalog = async () => {
   const name = createCatalogName.value.trim()
   const metalake = q.value.metalake
   if (!name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
   // Provider required only for relational and messaging
   if (showProviderSelect.value && !createCatalogProvider.value) {
-    message.error('Provider is required')
+    message.error(t('Provider is required'))
     return
   }
   if (!metalake) {
-    message.error('Metalake context is required')
+    message.error(t('Metalake context is required'))
     return
   }
 
   // Validate required properties (only visible ones)
   const missingRequired = createCatalogProps.value.find(p => !shouldHideProp(p) && p.required && !p.value?.trim())
   if (missingRequired) {
-    message.error(`Required property "${missingRequired.key}" is missing`)
+    message.error(t('Required property "{key}" is missing', { key: missingRequired.key }))
     return
   }
 
@@ -1767,12 +1790,12 @@ const submitCreateCatalog = async () => {
       comment: createCatalogComment.value,
       properties: catalogPropsObject.value,
     })
-    message.success('Catalog created')
+    message.success(t('Catalog created'))
     createCatalogOpen.value = false
     await refreshMetalakeContext(metalake)
     goToCatalog(metalake, name, createCatalogType.value)
   } catch (err: any) {
-    message.error(err?.message || 'Failed to create catalog')
+    message.error(err?.message || t('Failed to create catalog'))
   } finally {
     isLoading.value = false
   }
@@ -1809,11 +1832,11 @@ const submitCreateSchema = async () => {
   const catalog = q.value.catalog
   const type = q.value.type
   if (!name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
   if (!metalake || !catalog || !type) {
-    message.error('Catalog context is required')
+    message.error(t('Catalog context is required'))
     return
   }
 
@@ -1824,14 +1847,14 @@ const submitCreateSchema = async () => {
       comment: createSchemaComment.value,
       properties: schemaPropsObject.value,
     })
-    message.success('Schema created')
+    message.success(t('Schema created'))
     createSchemaOpen.value = false
     await refreshCatalogContext(metalake, catalog, type)
     // Stay on catalog page, don't navigate
     // Force refresh left tree with forceRefresh=true
     await loadSchemasForCatalog(metalake, catalog, type, true)
   } catch (err: any) {
-    message.error(err?.message || 'Failed to create schema')
+    message.error(err?.message || t('Failed to create schema'))
   } finally {
     isLoading.value = false
   }
@@ -2108,18 +2131,18 @@ const submitCreateTable = async () => {
   const schema = q.value.schema
   const type = q.value.type
   if (!name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
   if (!metalake || !catalog || !schema || !type) {
-    message.error('Schema context is required')
+    message.error(t('Schema context is required'))
     return
   }
 
   // Validate columns
   const columns = createTableColumns.value.filter(c => c.name.trim() && c.type.trim())
   if (columns.length === 0) {
-    message.error('At least one column is required')
+    message.error(t('At least one column is required'))
     return
   }
 
@@ -2136,13 +2159,13 @@ const submitCreateTable = async () => {
       })),
       properties: tablePropsObject.value,
     })
-    message.success('Table created')
+    message.success(t('Table created'))
     createTableOpen.value = false
     await refreshSchemaContext(metalake, catalog, type, schema)
     await loadEntitiesForSchema(metalake, catalog, type, schema)
     // Stay on schema page, don't navigate
   } catch (err: any) {
-    message.error(err?.message || 'Failed to create table')
+    message.error(err?.message || t('Failed to create table'))
   } finally {
     isLoading.value = false
   }
@@ -2192,11 +2215,11 @@ const submitCreateFileset = async () => {
   const schema = q.value.schema
   const type = q.value.type
   if (!name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
   if (!metalake || !catalog || !schema || !type) {
-    message.error('Schema context is required')
+    message.error(t('Schema context is required'))
     return
   }
 
@@ -2227,13 +2250,13 @@ const submitCreateFileset = async () => {
       comment: createFilesetComment.value,
       properties,
     })
-    message.success('Fileset created')
+    message.success(t('Fileset created'))
     createFilesetOpen.value = false
     await refreshSchemaContext(metalake, catalog, type, schema)
     // Force tree to reload with updated filesets
     await loadEntitiesForSchema(metalake, catalog, type, schema)
   } catch (err: any) {
-    message.error(err?.message || 'Failed to create fileset')
+    message.error(err?.message || t('Failed to create fileset'))
   } finally {
     isLoading.value = false
   }
@@ -2299,7 +2322,7 @@ const openCreate = (kind: ResourceKind) => {
   // For other types (topic, model, version), continue using JSON editor
   editKind.value = kind
   editMode.value = 'create'
-  editDescription.value = 'Edit the JSON payload. Required fields depend on provider/type.'
+  editDescription.value = t('Edit the JSON payload. Required fields depend on provider/type.')
 
   const metalake = q.value.metalake
   const catalog = q.value.catalog
@@ -2345,11 +2368,14 @@ const openCreate = (kind: ResourceKind) => {
 
   // Title generation for JSON editor mode (only topic, model, version now)
   if (kind === 'topic' || kind === 'model') {
-    editTitle.value = `Create ${kind} in ${metalake}.${catalog}.${schema}`
+    editTitle.value = t('Create {kind} in {path}', {
+      kind: resourceKindLabel(kind),
+      path: `${metalake}.${catalog}.${schema}`,
+    })
   } else if (kind === 'version' && metalake && catalog && schema && entity) {
-    editTitle.value = `Link Version for ${metalake}.${catalog}.${schema}.${entity}`
+    editTitle.value = t('Link Version for {path}', { path: `${metalake}.${catalog}.${schema}.${entity}` })
   } else {
-    editTitle.value = `Create ${kind}`
+    editTitle.value = t('Create {kind}', { kind: resourceKindLabel(kind) })
   }
 
   editJson.value = JSON.stringify(templates[kind], null, 2)
@@ -2359,7 +2385,7 @@ const openCreate = (kind: ResourceKind) => {
 const openEdit = (kind: ResourceKind) => {
   editKind.value = kind
   editMode.value = 'edit'
-  editDescription.value = 'Edit the JSON model; the UI will generate Gravitino updates where applicable.'
+  editDescription.value = t('Edit the JSON model; the UI will generate Gravitino updates where applicable.')
 
   const current =
     kind === 'metalake'
@@ -2408,11 +2434,11 @@ const openEdit = (kind: ResourceKind) => {
   }
 
   if (!current) {
-    message.warning('No details loaded yet')
+    message.warning(t('No details loaded yet'))
     return
   }
 
-  editTitle.value = `Edit ${kind}`
+  editTitle.value = t('Edit {kind}', { kind: resourceKindLabel(kind) })
   editJson.value = JSON.stringify(current, null, 2)
   editOpen.value = true
 }
@@ -2440,7 +2466,7 @@ async function openSchemaEdit(metalake: string, catalog: string, schema: string)
     const res = await api.getSchema(metalake, catalog, schema)
     const s = res?.schema ?? res
     if (!s) {
-      message.warning('No details loaded yet')
+      message.warning(t('No details loaded yet'))
       return
     }
     editSchemaOriginal.value = s
@@ -2451,7 +2477,7 @@ async function openSchemaEdit(metalake: string, catalog: string, schema: string)
       : [{ key: '', value: '' }]
     editSchemaOpen.value = true
   } catch {
-    message.error('Failed to load schema details')
+    message.error(t('Failed to load schema details'))
   } finally {
     isLoading.value = false
   }
@@ -2470,7 +2496,7 @@ async function submitEditSchema() {
     properties: editSchemaPropsObject.value,
   }
   if (!next.name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -2478,11 +2504,11 @@ async function submitEditSchema() {
     isLoading.value = true
     const updates = genUpdates(original, next)
     await api.updateSchema(metalake, catalog, original?.name ?? next.name, { updates })
-    message.success('Schema updated')
+    message.success(t('Schema updated'))
     editSchemaOpen.value = false
     await refreshCatalogContext(metalake, catalog, type)
   } catch (err: any) {
-    message.error(err?.message || 'Failed to update schema')
+    message.error(err?.message || t('Failed to update schema'))
   } finally {
     isLoading.value = false
   }
@@ -2513,7 +2539,7 @@ async function openTableEdit(metalake: string, catalog: string, schema: string, 
     const res = await api.getTable(metalake, catalog, schema, table)
     const t = res?.table ?? res
     if (!t) {
-      message.warning('No details loaded yet')
+      message.warning(t('No details loaded yet'))
       return
     }
     editTableOriginal.value = t
@@ -2525,7 +2551,7 @@ async function openTableEdit(metalake: string, catalog: string, schema: string, 
       : [{ key: '', value: '' }]
     editTableOpen.value = true
   } catch {
-    message.error('Failed to load table details')
+    message.error(t('Failed to load table details'))
   }
 }
 
@@ -2543,7 +2569,7 @@ async function submitEditTable() {
     properties: editTablePropsObject.value,
   }
   if (!next.name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -2551,10 +2577,10 @@ async function submitEditTable() {
     isLoading.value = true
     const updates = genUpdates(original, next)
     await api.updateTable(metalake, catalog, schema, original?.name ?? next.name, { updates })
-    message.success('Table updated')
+    message.success(t('Table updated'))
     editTableOpen.value = false
   } catch (err: any) {
-    message.error(err?.message || 'Failed to update table')
+    message.error(err?.message || t('Failed to update table'))
   } finally {
     isLoading.value = false
   }
@@ -2585,7 +2611,7 @@ async function openFilesetEdit(metalake: string, catalog: string, schema: string
     const res = await api.getFileset(metalake, catalog, schema, fileset)
     const f = res?.fileset ?? res
     if (!f) {
-      message.warning('No details loaded yet')
+      message.warning(t('No details loaded yet'))
       return
     }
     editFilesetOriginal.value = f
@@ -2600,7 +2626,7 @@ async function openFilesetEdit(metalake: string, catalog: string, schema: string
       : [{ key: '', value: '' }]
     editFilesetOpen.value = true
   } catch {
-    message.error('Failed to load fileset details')
+    message.error(t('Failed to load fileset details'))
   } finally {
     isLoading.value = false
   }
@@ -2629,7 +2655,7 @@ async function submitEditFileset() {
     properties: editFilesetPropsObject.value,
   }
   if (!next.name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -2637,12 +2663,12 @@ async function submitEditFileset() {
     isLoading.value = true
     const updates = genUpdates(original, next)
     await api.updateFileset(metalake, catalog, schema, original?.name ?? next.name, { updates })
-    message.success('Fileset updated')
+    message.success(t('Fileset updated'))
     editFilesetOpen.value = false
     await refreshSchemaContext(metalake, catalog, q.value.type!, schema)
     await loadEntitiesForSchema(metalake, catalog, q.value.type!, schema)
   } catch (err: any) {
-    message.error(err?.message || 'Failed to update fileset')
+    message.error(err?.message || t('Failed to update fileset'))
   } finally {
     isLoading.value = false
   }
@@ -2661,7 +2687,7 @@ async function openCatalogEdit(metalake: string, catalog: string) {
     const res = await api.getCatalog(metalake, catalog)
     const c = res?.catalog ?? res
     if (!c) {
-      message.warning('No details loaded yet')
+      message.warning(t('No details loaded yet'))
       return
     }
     catalogDetail.value = c
@@ -2671,7 +2697,7 @@ async function openCatalogEdit(metalake: string, catalog: string) {
     editCatalogProps.value = propsObjectToRows(c?.properties)
     editCatalogOpen.value = true
   } catch {
-    message.error('Failed to load catalog details')
+    message.error(t('Failed to load catalog details'))
   } finally {
     isLoading.value = false
   }
@@ -2688,7 +2714,7 @@ async function submitEditCatalog() {
     properties: propsRowsToObject(editCatalogProps.value),
   }
   if (!next.name) {
-    message.error('Name is required')
+    message.error(t('Name is required'))
     return
   }
 
@@ -2696,7 +2722,7 @@ async function submitEditCatalog() {
     isLoading.value = true
     const updates = genUpdates(original, next)
     await api.updateCatalog(metalake, original?.name ?? next.name, { updates })
-    message.success('Catalog updated')
+    message.success(t('Catalog updated'))
     editCatalogOpen.value = false
     await refreshMetalakeContext(metalake)
     // If renamed, keep user on the updated route
@@ -2706,7 +2732,7 @@ async function submitEditCatalog() {
       await refreshCatalogContext(metalake, q.value.catalog, q.value.type || original?.type || 'relational')
     }
   } catch (err: any) {
-    message.error(err?.message || 'Failed to update catalog')
+    message.error(err?.message || t('Failed to update catalog'))
   } finally {
     isLoading.value = false
   }
@@ -2724,12 +2750,12 @@ const submitEdit = async () => {
   try {
     payload = parseJson(editJson.value)
   } catch (e) {
-    message.error('Invalid JSON')
+    message.error(t('Invalid JSON'))
     return
   }
 
   if (!payload) {
-    message.error('Payload is empty')
+    message.error(t('Payload is empty'))
     return
   }
 
@@ -2742,70 +2768,70 @@ const submitEdit = async () => {
       switch (kind) {
         case 'metalake':
           await api.createMetalake(payload)
-          message.success('Metalake created')
+          message.success(t('Metalake created'))
           editOpen.value = false
           await refreshAll()
           if (payload.name) goToMetalake(payload.name)
           return
 
         case 'catalog':
-          if (!metalake) throw new Error('metalake is required')
+          if (!metalake) throw new Error(t('Metalake context is required'))
           await api.createCatalog(metalake, payload)
-          message.success('Catalog created')
+          message.success(t('Catalog created'))
           editOpen.value = false
           await refreshMetalakeContext(metalake)
           if (payload.name && payload.type) goToCatalog(metalake, payload.name, payload.type)
           return
 
         case 'schema':
-          if (!metalake || !catalog || !type) throw new Error('catalog context is required')
+          if (!metalake || !catalog || !type) throw new Error(t('Catalog context is required'))
           await api.createSchema(metalake, catalog, payload)
-          message.success('Schema created')
+          message.success(t('Schema created'))
           editOpen.value = false
           await refreshCatalogContext(metalake, catalog, type)
           if (payload.name) goToSchema(metalake, catalog, type, payload.name)
           return
 
         case 'table':
-          if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+          if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
           await api.createTable(metalake, catalog, schema, payload)
-          message.success('Table created')
+          message.success(t('Table created'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
           return
 
         case 'fileset':
-          if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+          if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
           await api.createFileset(metalake, catalog, schema, payload)
-          message.success('Fileset created')
+          message.success(t('Fileset created'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
           return
 
         case 'topic':
-          if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+          if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
           await api.createTopic(metalake, catalog, schema, payload)
-          message.success('Topic created')
+          message.success(t('Topic created'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
           return
 
         case 'model':
-          if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+          if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
           await api.registerModel(metalake, catalog, schema, payload)
-          message.success('Model registered')
+          message.success(t('Model registered'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
           return
 
         case 'version':
-          if (!metalake || !catalog || !schema || !entity) throw new Error('model context is required')
+          if (!metalake || !catalog || !schema || !entity) throw new Error(t('Model context is required'))
           await api.linkVersion(metalake, catalog, schema, entity, payload)
-          message.success('Version linked')
+          message.success(t('Version linked'))
           editOpen.value = false
           await refreshEntityDetails(metalake, catalog, 'model', schema, entity)
           if (payload.version) goToModelVersion(metalake, catalog, schema, entity, String(payload.version))
@@ -2817,7 +2843,7 @@ const submitEdit = async () => {
           const original = metalakeDetail.value
           const updates = genUpdates(original, payload)
           await api.updateMetalake(original?.name ?? metalake ?? payload.name, { updates })
-          message.success('Metalake updated')
+          message.success(t('Metalake updated'))
           editOpen.value = false
           await refreshAll()
           if (payload.name) goToMetalake(payload.name)
@@ -2825,11 +2851,11 @@ const submitEdit = async () => {
         }
 
         case 'catalog': {
-          if (!metalake || !catalog) throw new Error('catalog context is required')
+          if (!metalake || !catalog) throw new Error(t('Catalog context is required'))
           const original = catalogDetail.value
           const updates = genUpdates(original, payload)
           await api.updateCatalog(metalake, original?.name ?? catalog, { updates })
-          message.success('Catalog updated')
+          message.success(t('Catalog updated'))
           editOpen.value = false
           await refreshMetalakeContext(metalake)
           if (payload.name && (payload.type ?? type)) goToCatalog(metalake, payload.name, payload.type ?? (type as any))
@@ -2837,11 +2863,11 @@ const submitEdit = async () => {
         }
 
         case 'schema': {
-          if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+          if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
           const original = schemaDetail.value
           const updates = genUpdates(original, payload)
           await api.updateSchema(metalake, catalog, original?.name ?? schema, { updates })
-          message.success('Schema updated')
+          message.success(t('Schema updated'))
           editOpen.value = false
           await refreshCatalogContext(metalake, catalog, type)
           if (payload.name) goToSchema(metalake, catalog, type, payload.name)
@@ -2849,10 +2875,10 @@ const submitEdit = async () => {
         }
 
         case 'table': {
-          if (!metalake || !catalog || !schema || !entity || !type) throw new Error('table context is required')
+          if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Table context is required'))
           const updates = genUpdates(entityDetail.value, payload)
           await api.updateTable(metalake, catalog, schema, entity, { updates })
-          message.success('Table updated')
+          message.success(t('Table updated'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
@@ -2860,10 +2886,10 @@ const submitEdit = async () => {
         }
 
         case 'fileset': {
-          if (!metalake || !catalog || !schema || !entity || !type) throw new Error('fileset context is required')
+          if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Fileset context is required'))
           const updates = genUpdates(entityDetail.value, payload)
           await api.updateFileset(metalake, catalog, schema, entity, { updates })
-          message.success('Fileset updated')
+          message.success(t('Fileset updated'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
@@ -2871,10 +2897,10 @@ const submitEdit = async () => {
         }
 
         case 'topic': {
-          if (!metalake || !catalog || !schema || !entity || !type) throw new Error('topic context is required')
+          if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Topic context is required'))
           const updates = genUpdates(entityDetail.value, payload)
           await api.updateTopic(metalake, catalog, schema, entity, { updates })
-          message.success('Topic updated')
+          message.success(t('Topic updated'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
@@ -2882,10 +2908,10 @@ const submitEdit = async () => {
         }
 
         case 'model': {
-          if (!metalake || !catalog || !schema || !entity || !type) throw new Error('model context is required')
+          if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Model context is required'))
           const updates = genUpdates(entityDetail.value, payload)
           await api.updateModel(metalake, catalog, schema, entity, { updates })
-          message.success('Model updated')
+          message.success(t('Model updated'))
           editOpen.value = false
           await refreshSchemaContext(metalake, catalog, type, schema)
           if (payload.name) goToEntity(metalake, catalog, type, schema, payload.name)
@@ -2894,10 +2920,10 @@ const submitEdit = async () => {
 
         case 'version': {
           if (!metalake || !catalog || !schema || !q.value.model || !version)
-            throw new Error('version context is required')
+            throw new Error(t('Version context is required'))
           const updates = genUpdates(versionDetail.value, payload)
           await api.updateVersion(metalake, catalog, schema, q.value.model, String(version), { updates })
-          message.success('Version updated')
+          message.success(t('Version updated'))
           editOpen.value = false
           await refreshVersionDetails(metalake, catalog, schema, q.value.model, String(version))
           return
@@ -2905,7 +2931,7 @@ const submitEdit = async () => {
       }
     }
   } catch (err: any) {
-    message.error(err?.message || 'Operation failed')
+    message.error(err?.message || t('Operation failed'))
   } finally {
     isLoading.value = false
   }
@@ -2913,7 +2939,7 @@ const submitEdit = async () => {
 
 const openDelete = (kind: ResourceKind, ctx?: typeof deleteContext.value) => {
   deleteKind.value = kind
-  deleteTitle.value = `Delete ${kind}?`
+  deleteTitle.value = t('Delete {kind}?', { kind: resourceKindLabel(kind) })
   deleteContext.value = ctx ?? null
   deleteOpen.value = true
 }
@@ -2931,18 +2957,18 @@ const confirmDelete = async () => {
     isLoading.value = true
     switch (deleteKind.value) {
       case 'metalake':
-        if (!metalake) throw new Error('metalake is required')
+        if (!metalake) throw new Error(t('Metalake context is required'))
         await api.deleteMetalake(metalake)
-        message.success('Metalake deleted')
+        message.success(t('Metalake deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshAll()
         goToMetalakeList()
         return
       case 'catalog':
-        if (!metalake || !catalog) throw new Error('catalog context is required')
+        if (!metalake || !catalog) throw new Error(t('Catalog context is required'))
         await api.deleteCatalog(metalake, catalog)
-        message.success('Catalog deleted')
+        message.success(t('Catalog deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshMetalakeContext(metalake)
@@ -2950,9 +2976,9 @@ const confirmDelete = async () => {
         goToMetalake(metalake)
         return
       case 'schema':
-        if (!metalake || !catalog || !schema || !type) throw new Error('schema context is required')
+        if (!metalake || !catalog || !schema || !type) throw new Error(t('Schema context is required'))
         await api.deleteSchema(metalake, catalog, schema)
-        message.success('Schema deleted')
+        message.success(t('Schema deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshCatalogContext(metalake, catalog, type)
@@ -2962,9 +2988,9 @@ const confirmDelete = async () => {
         goToCatalog(metalake, catalog, type)
         return
       case 'table':
-        if (!metalake || !catalog || !schema || !entity || !type) throw new Error('table context is required')
+        if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Table context is required'))
         await api.deleteTable(metalake, catalog, schema, entity)
-        message.success('Table deleted')
+        message.success(t('Table deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
@@ -2972,9 +2998,9 @@ const confirmDelete = async () => {
         goToSchema(metalake, catalog, type, schema)
         return
       case 'fileset':
-        if (!metalake || !catalog || !schema || !entity || !type) throw new Error('fileset context is required')
+        if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Fileset context is required'))
         await api.deleteFileset(metalake, catalog, schema, entity)
-        message.success('Fileset deleted')
+        message.success(t('Fileset deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
@@ -2986,9 +3012,9 @@ const confirmDelete = async () => {
         }
         return
       case 'topic':
-        if (!metalake || !catalog || !schema || !entity || !type) throw new Error('topic context is required')
+        if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Topic context is required'))
         await api.deleteTopic(metalake, catalog, schema, entity)
-        message.success('Topic deleted')
+        message.success(t('Topic deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
@@ -2996,9 +3022,9 @@ const confirmDelete = async () => {
         goToSchema(metalake, catalog, type, schema)
         return
       case 'model':
-        if (!metalake || !catalog || !schema || !entity || !type) throw new Error('model context is required')
+        if (!metalake || !catalog || !schema || !entity || !type) throw new Error(t('Model context is required'))
         await api.deleteModel(metalake, catalog, schema, entity)
-        message.success('Model deleted')
+        message.success(t('Model deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshSchemaContext(metalake, catalog, type, schema)
@@ -3007,9 +3033,9 @@ const confirmDelete = async () => {
         return
       case 'version':
         if (!metalake || !catalog || !schema || !q.value.model || !version)
-          throw new Error('version context is required')
+          throw new Error(t('Version context is required'))
         await api.deleteVersion(metalake, catalog, schema, q.value.model, String(version))
-        message.success('Version deleted')
+        message.success(t('Version deleted'))
         deleteOpen.value = false
         deleteContext.value = null
         await refreshEntityDetails(metalake, catalog, 'model', schema, q.value.model)
@@ -3017,7 +3043,7 @@ const confirmDelete = async () => {
         return
     }
   } catch (err: any) {
-    message.error(err?.message || 'Delete failed')
+    message.error(err?.message || t('Delete failed'))
   } finally {
     isLoading.value = false
   }
@@ -3027,31 +3053,25 @@ const confirmDelete = async () => {
 <template>
   <Page>
     <PageHeader>
-      <div class="flex items-center gap-2">
-        <Button
-          v-if="currentLevel !== 'metalake-list'"
-          variant="outline"
-          size="sm"
-          class="px-2 inline-flex items-center gap-2"
-          @click="goToMetalakeList"
-        >
-          <Icon name="ri:arrow-left-line" class="size-4" />
-          <span>Back Metalakes</span>
-        </Button>
-      </div>
+      <h1 class="text-2xl font-bold">{{ t('Catalog') }}</h1>
       <template #description>
-        <!-- intentionally empty: keep console header clean -->
+        <div v-if="currentLevel !== 'metalake-list'" class="flex items-center gap-2">
+          <Button variant="outline" size="sm" class="px-2 inline-flex items-center gap-2" @click="goToMetalakeList">
+            <Icon name="ri:arrow-left-line" class="size-4" />
+            <span>{{ t('Back Metalakes') }}</span>
+          </Button>
+        </div>
       </template>
       <template #actions>
         <!-- Metalake page (Gravitino-like): keep header clean and focused -->
         <template v-if="q.metalake && !q.catalog">
           <Button variant="outline" class="inline-flex items-center gap-2" @click="openCreate('catalog')">
             <Icon name="ri:add-line" class="size-4" />
-            <span>Create Catalog</span>
+            <span>{{ t('Create Catalog') }}</span>
           </Button>
           <Button variant="outline" class="inline-flex items-center gap-2" @click="refreshAll">
             <Icon name="ri:refresh-line" class="size-4" />
-            <span>Refresh</span>
+            <span>{{ t('Refresh') }}</span>
           </Button>
         </template>
 
@@ -3064,7 +3084,7 @@ const confirmDelete = async () => {
             @click="openCreate('schema')"
           >
             <Icon name="ri:add-line" class="size-4" />
-            <span>Create Schema</span>
+            <span>{{ t('Create Schema') }}</span>
           </Button>
 
           <Button
@@ -3074,7 +3094,7 @@ const confirmDelete = async () => {
             @click="openCreate(currentEntityKind)"
           >
             <Icon name="ri:add-line" class="size-4" />
-            <span>Create {{ typeLabel(q.type) }}</span>
+            <span>{{ t('Create {type}', { type: typeLabel(q.type) }) }}</span>
           </Button>
 
           <Button
@@ -3084,7 +3104,7 @@ const confirmDelete = async () => {
             @click="openCreate('version')"
           >
             <Icon name="ri:git-branch-line" class="size-4" />
-            <span>Link Version</span>
+            <span>{{ t('Link Version') }}</span>
           </Button>
           <Button
             v-if="q.type === 'model' && q.version"
@@ -3093,7 +3113,7 @@ const confirmDelete = async () => {
             @click="openEdit('version')"
           >
             <Icon name="ri:edit-line" class="size-4" />
-            <span>Edit Version</span>
+            <span>{{ t('Edit Version') }}</span>
           </Button>
           <Button
             v-if="q.type === 'model' && q.version"
@@ -3102,12 +3122,12 @@ const confirmDelete = async () => {
             @click="openDelete('version')"
           >
             <Icon name="ri:delete-bin-5-line" class="size-4" />
-            <span>Delete Version</span>
+            <span>{{ t('Delete Version') }}</span>
           </Button>
 
           <Button variant="outline" class="inline-flex items-center gap-2" @click="refreshAll">
             <Icon name="ri:refresh-line" class="size-4" />
-            <span>Refresh</span>
+            <span>{{ t('Refresh') }}</span>
           </Button>
         </template>
       </template>
@@ -3119,30 +3139,30 @@ const confirmDelete = async () => {
         <CardContent class="py-6">
           <div class="flex items-center justify-between gap-3 mb-4">
             <div>
-              <div class="text-sm font-medium">Metalakes</div>
-              <div class="text-xs text-muted-foreground">Browse and manage metalakes.</div>
+              <div class="text-sm font-medium">{{ t('Metalakes') }}</div>
+              <div class="text-xs text-muted-foreground">{{ t('Browse and manage metalakes.') }}</div>
             </div>
             <div class="flex items-center gap-3">
-              <Input v-model="metalakeNameFilter" class="w-[240px]" placeholder="Query Name" />
+              <Input v-model="metalakeNameFilter" class="w-[240px]" :placeholder="t('Query Name')" />
               <Button variant="outline" class="inline-flex items-center gap-2" @click="openMetalakeCreate">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Create Metalake</span>
+                <span>{{ t('Create Metalake') }}</span>
               </Button>
             </div>
           </div>
 
           <Separator class="mb-4" />
 
-          <div v-if="isLoading" class="text-sm text-muted-foreground">Loading…</div>
+          <div v-if="isLoading" class="text-sm text-muted-foreground">{{ t('Loading…') }}</div>
           <template v-else>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Metalake</TableHead>
-                  <TableHead>Created by</TableHead>
-                  <TableHead>Created at</TableHead>
-                  <TableHead class="w-[110px]">In use</TableHead>
-                  <TableHead class="w-[220px]">Actions</TableHead>
+                  <TableHead>{{ t('Metalake') }}</TableHead>
+                  <TableHead>{{ t('Created by') }}</TableHead>
+                  <TableHead>{{ t('Created at') }}</TableHead>
+                  <TableHead class="w-[110px]">{{ t('In use') }}</TableHead>
+                  <TableHead class="w-[220px]">{{ t('Actions') }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -3201,8 +3221,8 @@ const confirmDelete = async () => {
 
             <EmptyState
               v-if="filteredMetalakeRows.length === 0"
-              title="No metalakes"
-              description="No metalakes found from the Gravitino server."
+              :title="t('No metalakes')"
+              :description="t('No metalakes found from the Gravitino server.')"
             />
           </template>
         </CardContent>
@@ -3222,7 +3242,7 @@ const confirmDelete = async () => {
 
           <ScrollArea class="h-[calc(100vh-260px)]">
             <div class="p-2">
-              <div v-if="isLoading" class="p-3 text-sm text-muted-foreground">Loading…</div>
+              <div v-if="isLoading" class="p-3 text-sm text-muted-foreground">{{ t('Loading…') }}</div>
 
               <div v-else class="space-y-1">
                 <div v-for="c in catalogs" :key="`${c.name}:${c.type}`" class="select-none">
@@ -3258,7 +3278,7 @@ const confirmDelete = async () => {
                       v-if="treeLoading[`schemas:${c.name}::${c.type}`]"
                       class="px-3 py-1 text-sm text-muted-foreground"
                     >
-                      Loading…
+                      {{ t('Loading…') }}
                     </div>
                     <div v-else>
                       <div v-for="s in treeSchemasByCatalogKey[`${c.name}::${c.type}`] || []" :key="s">
@@ -3290,7 +3310,7 @@ const confirmDelete = async () => {
                             v-if="treeLoading[`entities:${c.name}::${c.type}::${s}`]"
                             class="px-3 py-1 text-sm text-muted-foreground"
                           >
-                            Loading…
+                            {{ t('Loading…') }}
                           </div>
                           <div v-else>
                             <button
@@ -3346,12 +3366,12 @@ const confirmDelete = async () => {
                 value="details"
                 class="rounded-none px-4 py-3 data-[state=active]:bg-transparent data-[state=active]:shadow-none border-b-2 border-transparent data-[state=active]:border-primary"
               >
-                Details
+                {{ t('Details') }}
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="list" class="mt-4">
-              <div v-if="isLoading" class="text-sm text-muted-foreground">Loading…</div>
+              <div v-if="isLoading" class="text-sm text-muted-foreground">{{ t('Loading…') }}</div>
 
               <template v-else>
                 <!-- Metalake level: catalogs table -->
@@ -3359,9 +3379,9 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead class="w-[120px]">In-use</TableHead>
-                        <TableHead class="w-[180px] text-right">Actions</TableHead>
+                        <TableHead>{{ t('Name') }}</TableHead>
+                        <TableHead class="w-[120px]">{{ t('In use') }}</TableHead>
+                        <TableHead class="w-[180px] text-right">{{ t('Actions') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3424,8 +3444,8 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead class="w-[120px]">Actions</TableHead>
+                        <TableHead>{{ t('Name') }}</TableHead>
+                        <TableHead class="w-[120px]">{{ t('Actions') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3473,8 +3493,8 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead class="w-[120px]">Actions</TableHead>
+                        <TableHead>{{ t('Name') }}</TableHead>
+                        <TableHead class="w-[120px]">{{ t('Actions') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3529,30 +3549,30 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Nullable</TableHead>
-                        <TableHead>Autoincrement</TableHead>
-                        <TableHead>Default Value</TableHead>
-                        <TableHead>Comment</TableHead>
+                        <TableHead>{{ t('Name') }}</TableHead>
+                        <TableHead>{{ t('Type') }}</TableHead>
+                        <TableHead>{{ t('Nullable') }}</TableHead>
+                        <TableHead>{{ t('Autoincrement') }}</TableHead>
+                        <TableHead>{{ t('Default Value') }}</TableHead>
+                        <TableHead>{{ t('Comment') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow v-for="col in entityDetail?.columns || []" :key="col.name">
                         <TableCell class="font-medium">{{ col.name }}</TableCell>
                         <TableCell>
-                          <Badge variant="secondary">{{ col.type || col.dataType || '—' }}</Badge>
+                          <Badge variant="secondary">{{ col.type || col.dataType || t('N/A') }}</Badge>
                         </TableCell>
                         <TableCell class="text-sm text-muted-foreground">{{
-                          String(col.nullable ?? col.isNullable ?? '—')
+                          String(col.nullable ?? col.isNullable ?? t('N/A'))
                         }}</TableCell>
                         <TableCell class="text-sm text-muted-foreground">{{
-                          String(col.autoIncrement ?? col.isAutoIncrement ?? '—')
+                          String(col.autoIncrement ?? col.isAutoIncrement ?? t('N/A'))
                         }}</TableCell>
                         <TableCell class="text-sm text-muted-foreground">{{
-                          col.defaultValue ?? col.default ?? '—'
+                          col.defaultValue ?? col.default ?? t('N/A')
                         }}</TableCell>
-                        <TableCell class="text-sm text-muted-foreground">{{ col.comment ?? '—' }}</TableCell>
+                        <TableCell class="text-sm text-muted-foreground">{{ col.comment ?? t('N/A') }}</TableCell>
                       </TableRow>
                     </TableBody>
                   </Table>
@@ -3566,7 +3586,7 @@ const confirmDelete = async () => {
                         class="text-sm text-primary hover:underline cursor-pointer"
                         @click="setFilesetPath(crumb)"
                       >
-                        {{ idx === 0 ? 'Root' : crumb.split('/').pop() }}
+                        {{ idx === 0 ? t('Root') : crumb.split('/').pop() }}
                       </button>
                       <span v-if="idx < filesetBreadcrumbs.length - 1" class="text-sm text-muted-foreground">/</span>
                     </template>
@@ -3575,20 +3595,20 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
-                        <TableHead>Type</TableHead>
-                        <TableHead>Size</TableHead>
-                        <TableHead>Last Modified</TableHead>
+                        <TableHead>{{ t('Name') }}</TableHead>
+                        <TableHead>{{ t('Type') }}</TableHead>
+                        <TableHead>{{ t('Size') }}</TableHead>
+                        <TableHead>{{ t('Last Modified') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       <TableRow v-if="filesetFilesLoading">
-                        <TableCell colSpan="4" class="text-sm text-muted-foreground">Loading…</TableCell>
+                        <TableCell colSpan="4" class="text-sm text-muted-foreground">{{ t('Loading…') }}</TableCell>
                       </TableRow>
                       <TableRow v-else-if="!filesetFiles.length">
-                        <TableCell colSpan="4" class="text-sm text-muted-foreground text-center"
-                          >No files found in this directory</TableCell
-                        >
+                        <TableCell colSpan="4" class="text-sm text-muted-foreground text-center">{{
+                          t('No files found in this directory')
+                        }}</TableCell>
                       </TableRow>
                       <template v-else>
                         <TableRow
@@ -3603,14 +3623,14 @@ const confirmDelete = async () => {
                                 :name="file?.isDir ? 'ri:folder-2-line' : 'ri:file-2-line'"
                                 class="size-4 text-muted-foreground"
                               />
-                              <span class="truncate">{{ file?.name || '—' }}</span>
+                              <span class="truncate">{{ file?.name || t('N/A') }}</span>
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="secondary">{{ file?.isDir ? 'Directory' : 'File' }}</Badge>
+                            <Badge variant="secondary">{{ file?.isDir ? t('Directory') : t('File') }}</Badge>
                           </TableCell>
                           <TableCell class="text-sm text-muted-foreground">
-                            {{ file?.isDir ? '—' : formatFileSize(file?.size) }}
+                            {{ file?.isDir ? t('N/A') : formatFileSize(file?.size) }}
                           </TableCell>
                           <TableCell class="text-sm text-muted-foreground">
                             {{ formatFileTime(file?.lastModified) }}
@@ -3626,8 +3646,8 @@ const confirmDelete = async () => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Version</TableHead>
-                        <TableHead class="w-[120px]">Actions</TableHead>
+                        <TableHead>{{ t('Version') }}</TableHead>
+                        <TableHead class="w-[120px]">{{ t('Actions') }}</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -3696,39 +3716,41 @@ const confirmDelete = async () => {
                 </div>
 
                 <!-- Fallback -->
-                <div v-else class="text-sm text-muted-foreground">Select an item from the left tree.</div>
+                <div v-else class="text-sm text-muted-foreground">{{ t('Select an item from the left tree.') }}</div>
               </template>
             </TabsContent>
 
             <TabsContent value="details" class="mt-4">
-              <div v-if="detailsRows.length === 0" class="text-sm text-muted-foreground">No details loaded</div>
+              <div v-if="detailsRows.length === 0" class="text-sm text-muted-foreground">
+                {{ t('No details loaded') }}
+              </div>
               <div v-else class="space-y-6">
                 <!-- Type and Provider in first row -->
                 <div class="grid grid-cols-2 gap-6">
                   <div v-if="detailsTarget?.type" class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Type</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Type') }}</div>
                     <div class="text-sm text-foreground">{{ detailsTarget.type }}</div>
                   </div>
                   <div v-if="detailsTarget?.provider" class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Provider</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Provider') }}</div>
                     <div class="text-sm text-foreground">{{ detailsTarget.provider }}</div>
                   </div>
                 </div>
 
                 <!-- Storage Location(s) for fileset -->
                 <div v-if="q.type === 'fileset' && detailsTarget?.storageLocation" class="col-span-1">
-                  <div class="text-sm text-muted-foreground font-medium mb-2">Storage location</div>
+                  <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Storage location') }}</div>
                   <div class="text-sm text-foreground break-words">{{ detailsTarget?.storageLocation }}</div>
                 </div>
 
                 <div v-if="q.type === 'fileset' && detailsTarget?.storageLocations" class="col-span-1">
-                  <div class="text-sm text-muted-foreground font-medium mb-2">Storage Location(s)</div>
+                  <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Storage Location(s)') }}</div>
                   <div class="border rounded-md overflow-hidden">
                     <Table class="text-xs">
                       <TableHeader class="bg-muted">
                         <TableRow class="border-b">
-                          <TableHead class="py-2 px-3 text-left font-medium">Name</TableHead>
-                          <TableHead class="py-2 px-3 text-left font-medium">Location</TableHead>
+                          <TableHead class="py-2 px-3 text-left font-medium">{{ t('Name') }}</TableHead>
+                          <TableHead class="py-2 px-3 text-left font-medium">{{ t('Location') }}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -3751,44 +3773,44 @@ const confirmDelete = async () => {
 
                 <!-- Comment full width -->
                 <div class="col-span-1">
-                  <div class="text-sm text-muted-foreground font-medium mb-2">Comment</div>
+                  <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Comment') }}</div>
                   <div class="text-sm text-foreground break-words">
-                    {{ pickFirstString(detailsTarget?.comment) || 'N/A' }}
+                    {{ pickFirstString(detailsTarget?.comment) || t('N/A') }}
                   </div>
                 </div>
 
                 <!-- Created and Last Modified info -->
                 <div class="grid grid-cols-2 gap-6">
                   <div class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Created by</div>
-                    <div class="text-sm text-foreground">{{ getCreatedBy(detailsTarget) || 'N/A' }}</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Created by') }}</div>
+                    <div class="text-sm text-foreground">{{ getCreatedBy(detailsTarget) || t('N/A') }}</div>
                   </div>
                   <div class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Created at</div>
-                    <div class="text-sm text-foreground">{{ getCreatedAt(detailsTarget) || 'N/A' }}</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Created at') }}</div>
+                    <div class="text-sm text-foreground">{{ getCreatedAt(detailsTarget) || t('N/A') }}</div>
                   </div>
                 </div>
 
                 <div class="grid grid-cols-2 gap-6">
                   <div class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Last modified by</div>
-                    <div class="text-sm text-foreground">{{ getLastModifiedBy(detailsTarget) || 'N/A' }}</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Last modified by') }}</div>
+                    <div class="text-sm text-foreground">{{ getLastModifiedBy(detailsTarget) || t('N/A') }}</div>
                   </div>
                   <div class="col-span-1">
-                    <div class="text-sm text-muted-foreground font-medium mb-2">Last modified at</div>
-                    <div class="text-sm text-foreground">{{ getLastModifiedAt(detailsTarget) || 'N/A' }}</div>
+                    <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Last modified at') }}</div>
+                    <div class="text-sm text-foreground">{{ getLastModifiedAt(detailsTarget) || t('N/A') }}</div>
                   </div>
                 </div>
 
                 <!-- Properties Section (full width, always show) -->
                 <div class="col-span-1">
-                  <div class="text-sm text-muted-foreground font-medium mb-2">Properties</div>
+                  <div class="text-sm text-muted-foreground font-medium mb-2">{{ t('Properties') }}</div>
                   <div class="border rounded-md overflow-hidden">
                     <Table class="text-xs">
                       <TableHeader class="bg-muted">
                         <TableRow class="border-b">
-                          <TableHead class="py-2 px-3 text-left font-medium">Key</TableHead>
-                          <TableHead class="py-2 px-3 text-left font-medium">Value</TableHead>
+                          <TableHead class="py-2 px-3 text-left font-medium">{{ t('Key') }}</TableHead>
+                          <TableHead class="py-2 px-3 text-left font-medium">{{ t('Value') }}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -3819,27 +3841,27 @@ const confirmDelete = async () => {
     <Dialog v-model:open="createMetalakeOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Metalake</DialogTitle>
-          <DialogDescription>Provide basic metalake information and optional properties.</DialogDescription>
+          <DialogTitle>{{ t('Create Metalake') }}</DialogTitle>
+          <DialogDescription>{{ t('Provide basic metalake information and optional properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="createMetalakeName" placeholder="metalake_name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="createMetalakeName" :placeholder="t('Metalake name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="createMetalakeComment" placeholder="Optional description" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="createMetalakeComment" :placeholder="t('Optional description')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addMetalakePropRow">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
             <div class="space-y-2">
@@ -3848,8 +3870,8 @@ const confirmDelete = async () => {
                 :key="idx"
                 class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
               >
-                <Input v-model="row.key" placeholder="key" />
-                <Input v-model="row.value" placeholder="value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -3865,8 +3887,8 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createMetalakeOpen = false">Cancel</Button>
-          <Button :disabled="isLoading" @click="submitCreateMetalake">Create</Button>
+          <Button variant="outline" @click="createMetalakeOpen = false">{{ t('Cancel') }}</Button>
+          <Button :disabled="isLoading" @click="submitCreateMetalake">{{ t('Create') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -3875,35 +3897,35 @@ const confirmDelete = async () => {
     <Dialog v-model:open="createCatalogOpen">
       <DialogContent class="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Catalog</DialogTitle>
+          <DialogTitle>{{ t('Create Catalog') }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name <span class="text-red-500">*</span></div>
+            <div class="text-sm font-medium">{{ t('Name') }} <span class="text-red-500">*</span></div>
             <Input
               v-model="createCatalogName"
-              placeholder="Name"
+              :placeholder="t('Name')"
               :class="{ 'border-red-500': !createCatalogName.trim() }"
             />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Type <span class="text-red-500">*</span></div>
+            <div class="text-sm font-medium">{{ t('Type') }} <span class="text-red-500">*</span></div>
             <select
               v-model="createCatalogType"
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="relational">Relational</option>
-              <option value="fileset">Fileset</option>
-              <option value="messaging">Messaging</option>
-              <option value="model">Model</option>
+              <option value="relational">{{ t('Relational') }}</option>
+              <option value="fileset">{{ t('Fileset') }}</option>
+              <option value="messaging">{{ t('Messaging') }}</option>
+              <option value="model">{{ t('Model') }}</option>
             </select>
           </div>
 
           <!-- Provider selection only for relational and messaging -->
           <div v-if="showProviderSelect" class="space-y-2">
-            <div class="text-sm font-medium">Provider <span class="text-red-500">*</span></div>
+            <div class="text-sm font-medium">{{ t('Provider') }} <span class="text-red-500">*</span></div>
             <select
               v-model="createCatalogProvider"
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
@@ -3916,17 +3938,17 @@ const confirmDelete = async () => {
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="createCatalogComment" placeholder="Comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="createCatalogComment" :placeholder="t('Comment')" />
           </div>
 
           <!-- Properties section -->
           <div class="space-y-3">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addCatalogPropRow">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
@@ -3938,7 +3960,7 @@ const confirmDelete = async () => {
                   <Input
                     v-model="prop.key"
                     :disabled="prop.required"
-                    placeholder="Key"
+                    :placeholder="t('Key')"
                     class="flex-1"
                     :class="{ 'border-red-500': !prop.key?.trim() }"
                   />
@@ -3956,7 +3978,7 @@ const confirmDelete = async () => {
                   <template v-else>
                     <Input
                       v-model="prop.value"
-                      :placeholder="prop.required ? 'Required' : 'Value'"
+                      :placeholder="prop.required ? t('Required') : t('Value')"
                       :type="prop.key === 'jdbc-password' ? 'password' : 'text'"
                       class="flex-1"
                       :class="{ 'border-red-500': prop.required && !prop.value?.trim() }"
@@ -3984,8 +4006,8 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createCatalogOpen = false">Cancel</Button>
-          <Button :disabled="isLoading || !isCatalogFormValid" @click="submitCreateCatalog">Create</Button>
+          <Button variant="outline" @click="createCatalogOpen = false">{{ t('Cancel') }}</Button>
+          <Button :disabled="isLoading || !isCatalogFormValid" @click="submitCreateCatalog">{{ t('Create') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -3994,32 +4016,32 @@ const confirmDelete = async () => {
     <Dialog v-model:open="createSchemaOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Schema</DialogTitle>
+          <DialogTitle>{{ t('Create Schema') }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="createSchemaName" placeholder="Name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="createSchemaName" :placeholder="t('Name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="createSchemaComment" placeholder="Comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="createSchemaComment" :placeholder="t('Comment')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addSchemaPropRow">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(row, idx) in createSchemaProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input v-model="row.key" placeholder="Key" />
-                <Input v-model="row.value" placeholder="Value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4034,8 +4056,8 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createSchemaOpen = false">CANCEL</Button>
-          <Button :disabled="isLoading" @click="submitCreateSchema">CREATE</Button>
+          <Button variant="outline" @click="createSchemaOpen = false">{{ t('Cancel') }}</Button>
+          <Button :disabled="isLoading" @click="submitCreateSchema">{{ t('Create') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -4044,28 +4066,32 @@ const confirmDelete = async () => {
     <Dialog v-model:open="createTableOpen">
       <DialogContent class="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Table</DialogTitle>
+          <DialogTitle>{{ t('Create Table') }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="createTableName" placeholder="Name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="createTableName" :placeholder="t('Name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="createTableComment" placeholder="Comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="createTableComment" :placeholder="t('Comment')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Columns</div>
+            <div class="text-sm font-medium">{{ t('Columns') }}</div>
             <div class="space-y-2">
               <div v-for="(col, idx) in createTableColumns" :key="idx" class="space-y-2">
                 <div class="grid grid-cols-[2fr_2fr_1fr_2fr_auto] gap-2 items-start">
                   <div>
-                    <Input v-model="col.name" placeholder="Name" :class="{ 'border-red-500': !col.name.trim() }" />
-                    <div v-if="!col.name.trim()" class="text-xs text-red-500 mt-1">Name is required</div>
+                    <Input
+                      v-model="col.name"
+                      :placeholder="t('Name')"
+                      :class="{ 'border-red-500': !col.name.trim() }"
+                    />
+                    <div v-if="!col.name.trim()" class="text-xs text-red-500 mt-1">{{ t('Name is required') }}</div>
                   </div>
                   <div>
                     <select
@@ -4073,7 +4099,7 @@ const confirmDelete = async () => {
                       class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                       :class="{ 'border-red-500': !col.type }"
                     >
-                      <option value="">Type</option>
+                      <option value="">{{ t('Type') }}</option>
                       <option
                         v-for="t in getColumnTypesForProvider(catalogs.find(c => c.name === q.catalog)?.provider)"
                         :key="t"
@@ -4082,13 +4108,13 @@ const confirmDelete = async () => {
                         {{ t }}
                       </option>
                     </select>
-                    <div v-if="!col.type" class="text-xs text-red-500 mt-1">Type is required</div>
+                    <div v-if="!col.type" class="text-xs text-red-500 mt-1">{{ t('Type is required') }}</div>
                   </div>
                   <div class="flex items-center gap-2 h-10">
                     <input type="checkbox" v-model="col.nullable" class="size-4" />
-                    <span class="text-sm">Nullable</span>
+                    <span class="text-sm">{{ t('Nullable') }}</span>
                   </div>
-                  <Input v-model="col.comment" placeholder="Comment" />
+                  <Input v-model="col.comment" :placeholder="t('Comment')" />
                   <Button
                     variant="ghost"
                     size="sm"
@@ -4102,16 +4128,16 @@ const confirmDelete = async () => {
             </div>
             <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addTableColumn">
               <Icon name="ri:add-line" class="size-4" />
-              <span>Add Column</span>
+              <span>{{ t('Add Column') }}</span>
             </Button>
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addTablePropRow">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
             <div class="space-y-2">
@@ -4119,7 +4145,7 @@ const confirmDelete = async () => {
                 <div class="grid grid-cols-[1fr_1fr_auto] gap-2">
                   <Input
                     v-model="row.key"
-                    placeholder="Key"
+                    :placeholder="t('Key')"
                     :disabled="
                       row.disabled ||
                       getTablePropInfo(catalogs.find(c => c.name === q.catalog)?.provider).immutable.includes(row.key)
@@ -4127,7 +4153,7 @@ const confirmDelete = async () => {
                   />
                   <Input
                     v-model="row.value"
-                    placeholder="Value"
+                    :placeholder="t('Value')"
                     :class="{ 'border-red-500': row.required && !row.value }"
                     :disabled="row.disabled"
                   />
@@ -4145,7 +4171,7 @@ const confirmDelete = async () => {
                   class="text-xs"
                   :class="row.required && !row.value ? 'text-red-500' : 'text-muted-foreground'"
                 >
-                  {{ row.description }} {{ row.required && !row.value ? '(Required)' : '' }}
+                  {{ row.description }} {{ row.required && !row.value ? `(${t('Required')})` : '' }}
                 </div>
               </div>
             </div>
@@ -4153,8 +4179,8 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createTableOpen = false">Cancel</Button>
-          <Button :disabled="isLoading" @click="submitCreateTable">Create</Button>
+          <Button variant="outline" @click="createTableOpen = false">{{ t('Cancel') }}</Button>
+          <Button :disabled="isLoading" @click="submitCreateTable">{{ t('Create') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -4163,61 +4189,67 @@ const confirmDelete = async () => {
     <Dialog v-model:open="createFilesetOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Create Fileset</DialogTitle>
+          <DialogTitle>{{ t('Create Fileset') }}</DialogTitle>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="createFilesetName" placeholder="Name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="createFilesetName" :placeholder="t('Name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Type</div>
+            <div class="text-sm font-medium">{{ t('Type') }}</div>
             <select
               v-model="createFilesetType"
               class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
             >
-              <option value="Managed">Managed</option>
-              <option value="External">External</option>
+              <option value="Managed">{{ t('Managed') }}</option>
+              <option value="External">{{ t('External') }}</option>
             </select>
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Storage Locations</div>
+            <div class="text-sm font-medium">{{ t('Storage Locations') }}</div>
             <div class="space-y-2">
               <div v-for="(loc, idx) in createFilesetLocations" :key="idx" class="grid grid-cols-[1fr_1fr] gap-2">
-                <Input v-model="loc.name" placeholder="Name 1" />
-                <Input v-model="loc.location" placeholder="Location 1" />
+                <Input v-model="loc.name" :placeholder="t('Name')" />
+                <Input v-model="loc.location" :placeholder="t('Location')" />
               </div>
             </div>
             <div class="text-xs text-muted-foreground">
-              It is optional if the fileset is 'Managed' type and a storage location is already specified at the parent
-              catalog or schema level.
+              {{
+                t(
+                  "It is optional if the fileset is 'Managed' type and a storage location is already specified at the parent catalog or schema level."
+                )
+              }}
             </div>
             <div class="text-xs text-muted-foreground">
-              It becomes mandatory if the fileset type is 'External' or no storage location is defined at the parent
-              level.
+              {{
+                t(
+                  "It becomes mandatory if the fileset type is 'External' or no storage location is defined at the parent level."
+                )
+              }}
             </div>
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="createFilesetComment" placeholder="Comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="createFilesetComment" :placeholder="t('Comment')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button variant="outline" size="sm" class="inline-flex items-center gap-2" @click="addFilesetPropRow">
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
             <div class="space-y-2">
               <div v-for="(row, idx) in createFilesetProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input v-model="row.key" placeholder="Key" />
-                <Input v-model="row.value" placeholder="Value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4232,8 +4264,8 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="createFilesetOpen = false">CANCEL</Button>
-          <Button :disabled="isLoading" @click="submitCreateFileset">CREATE</Button>
+          <Button variant="outline" @click="createFilesetOpen = false">{{ t('Cancel') }}</Button>
+          <Button :disabled="isLoading" @click="submitCreateFileset">{{ t('Create') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -4242,24 +4274,24 @@ const confirmDelete = async () => {
     <Dialog v-model:open="editSchemaOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Schema</DialogTitle>
-          <DialogDescription>Update schema metadata and properties.</DialogDescription>
+          <DialogTitle>{{ t('Edit Schema') }}</DialogTitle>
+          <DialogDescription>{{ t('Update schema metadata and properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="editSchemaName" placeholder="schema_name" disabled />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="editSchemaName" :placeholder="t('Schema name')" disabled />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="editSchemaComment" placeholder="Optional comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="editSchemaComment" :placeholder="t('Optional comment')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -4267,14 +4299,14 @@ const confirmDelete = async () => {
                 @click="() => (editSchemaProps = [...editSchemaProps, { key: '', value: '' }])"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
             <div class="space-y-2">
               <div v-for="(row, idx) in editSchemaProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input v-model="row.key" placeholder="Key" />
-                <Input v-model="row.value" placeholder="Value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4290,10 +4322,10 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="editSchemaOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editSchemaOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditSchema">
             <Icon name="ri:save-3-line" class="size-4" />
-            <span>Update</span>
+            <span>{{ t('Update') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4303,49 +4335,51 @@ const confirmDelete = async () => {
     <Dialog v-model:open="editTableOpen">
       <DialogContent class="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Edit Table</DialogTitle>
-          <DialogDescription>Update table metadata and properties.</DialogDescription>
+          <DialogTitle>{{ t('Edit Table') }}</DialogTitle>
+          <DialogDescription>{{ t('Update table metadata and properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="editTableName" placeholder="table_name" disabled />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="editTableName" :placeholder="t('Table name')" disabled />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="editTableComment" placeholder="Optional comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="editTableComment" :placeholder="t('Optional comment')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Columns (Read-only)</div>
+            <div class="text-sm font-medium">{{ t('Columns (Read-only)') }}</div>
             <div class="border rounded-md">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
-                    <TableHead>Nullable</TableHead>
-                    <TableHead>Comment</TableHead>
+                    <TableHead>{{ t('Name') }}</TableHead>
+                    <TableHead>{{ t('Type') }}</TableHead>
+                    <TableHead>{{ t('Nullable') }}</TableHead>
+                    <TableHead>{{ t('Comment') }}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   <TableRow v-for="(col, idx) in editTableColumns" :key="idx">
                     <TableCell>{{ col.name }}</TableCell>
                     <TableCell>{{ col.type }}</TableCell>
-                    <TableCell>{{ col.nullable ? 'Yes' : 'No' }}</TableCell>
+                    <TableCell>{{ col.nullable ? t('Yes') : t('No') }}</TableCell>
                     <TableCell>{{ col.comment }}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>
             </div>
-            <p class="text-xs text-muted-foreground">Column structure cannot be modified through this dialog</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t('Column structure cannot be modified through this dialog') }}
+            </p>
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -4353,14 +4387,14 @@ const confirmDelete = async () => {
                 @click="() => (editTableProps = [...editTableProps, { key: '', value: '' }])"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
             <div class="space-y-2">
               <div v-for="(row, idx) in editTableProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input v-model="row.key" placeholder="Key" />
-                <Input v-model="row.value" placeholder="Value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4376,10 +4410,10 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="editTableOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editTableOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditTable">
             <Icon name="ri:save-3-line" class="size-4" />
-            <span>Update</span>
+            <span>{{ t('Update') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4389,39 +4423,39 @@ const confirmDelete = async () => {
     <Dialog v-model:open="editFilesetOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Fileset</DialogTitle>
-          <DialogDescription>Update fileset metadata and properties.</DialogDescription>
+          <DialogTitle>{{ t('Edit Fileset') }}</DialogTitle>
+          <DialogDescription>{{ t('Update fileset metadata and properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="editFilesetName" placeholder="fileset_name" disabled />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="editFilesetName" :placeholder="t('Fileset name')" disabled />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Type</div>
-            <Input v-model="editFilesetType" placeholder="Type" disabled />
+            <div class="text-sm font-medium">{{ t('Type') }}</div>
+            <Input v-model="editFilesetType" :placeholder="t('Type')" disabled />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Storage Locations</div>
+            <div class="text-sm font-medium">{{ t('Storage Locations') }}</div>
             <div class="space-y-2">
               <div v-for="(loc, idx) in editFilesetLocations" :key="idx" class="grid grid-cols-[1fr_1fr] gap-2">
-                <Input v-model="loc.name" placeholder="Name" />
-                <Input v-model="loc.location" placeholder="Location" />
+                <Input v-model="loc.name" :placeholder="t('Name')" />
+                <Input v-model="loc.location" :placeholder="t('Location')" />
               </div>
             </div>
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="editFilesetComment" placeholder="Optional comment" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="editFilesetComment" :placeholder="t('Optional comment')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -4429,14 +4463,14 @@ const confirmDelete = async () => {
                 @click="() => (editFilesetProps = [...editFilesetProps, { key: '', value: '' }])"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
             <div class="space-y-2">
               <div v-for="(row, idx) in editFilesetProps" :key="idx" class="grid grid-cols-[1fr_1fr_auto] gap-2">
-                <Input v-model="row.key" placeholder="Key" />
-                <Input v-model="row.value" placeholder="Value" />
+                <Input v-model="row.key" :placeholder="t('Key')" />
+                <Input v-model="row.value" :placeholder="t('Value')" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4452,10 +4486,10 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="editFilesetOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editFilesetOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditFileset">
             <Icon name="ri:save-3-line" class="size-4" />
-            <span>Update</span>
+            <span>{{ t('Update') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4465,24 +4499,24 @@ const confirmDelete = async () => {
     <Dialog v-model:open="editCatalogOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Catalog</DialogTitle>
-          <DialogDescription>Update catalog metadata and properties.</DialogDescription>
+          <DialogTitle>{{ t('Edit Catalog') }}</DialogTitle>
+          <DialogDescription>{{ t('Update catalog metadata and properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="editCatalogName" placeholder="catalog_name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="editCatalogName" :placeholder="t('Catalog name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="editCatalogComment" placeholder="Optional description" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="editCatalogComment" :placeholder="t('Optional description')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -4490,7 +4524,7 @@ const confirmDelete = async () => {
                 @click="() => (editCatalogProps = [...editCatalogProps, { key: '', value: '' }])"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
@@ -4500,8 +4534,8 @@ const confirmDelete = async () => {
                 :key="idx"
                 class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
               >
-                <Input v-model="row.key" placeholder="Key" :disabled="row.key === 'in-use' || row.disabled" />
-                <Input v-model="row.value" placeholder="Value" :disabled="row.key === 'in-use' || row.disabled" />
+                <Input v-model="row.key" :placeholder="t('Key')" :disabled="row.key === 'in-use' || row.disabled" />
+                <Input v-model="row.value" :placeholder="t('Value')" :disabled="row.key === 'in-use' || row.disabled" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4517,10 +4551,10 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="editCatalogOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editCatalogOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditCatalog">
             <Icon name="ri:save-3-line" class="size-4" />
-            <span>Update</span>
+            <span>{{ t('Update') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4530,24 +4564,24 @@ const confirmDelete = async () => {
     <Dialog v-model:open="editMetalakeOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Edit Metalake</DialogTitle>
-          <DialogDescription>Update metalake metadata and properties.</DialogDescription>
+          <DialogTitle>{{ t('Edit Metalake') }}</DialogTitle>
+          <DialogDescription>{{ t('Update metalake metadata and properties.') }}</DialogDescription>
         </DialogHeader>
 
         <div class="space-y-4">
           <div class="space-y-2">
-            <div class="text-sm font-medium">Name</div>
-            <Input v-model="editMetalakeName" placeholder="metalake_name" />
+            <div class="text-sm font-medium">{{ t('Name') }}</div>
+            <Input v-model="editMetalakeName" :placeholder="t('Metalake name')" />
           </div>
 
           <div class="space-y-2">
-            <div class="text-sm font-medium">Comment</div>
-            <Textarea v-model="editMetalakeComment" placeholder="Optional description" />
+            <div class="text-sm font-medium">{{ t('Comment') }}</div>
+            <Textarea v-model="editMetalakeComment" :placeholder="t('Optional description')" />
           </div>
 
           <div class="space-y-2">
             <div class="flex items-center justify-between gap-2">
-              <div class="text-sm font-medium">Properties</div>
+              <div class="text-sm font-medium">{{ t('Properties') }}</div>
               <Button
                 variant="outline"
                 size="sm"
@@ -4555,7 +4589,7 @@ const confirmDelete = async () => {
                 @click="addEditMetalakePropRow"
               >
                 <Icon name="ri:add-line" class="size-4" />
-                <span>Add Property</span>
+                <span>{{ t('Add Property') }}</span>
               </Button>
             </div>
 
@@ -4565,8 +4599,8 @@ const confirmDelete = async () => {
                 :key="idx"
                 class="grid grid-cols-1 md:grid-cols-[1fr_1fr_auto] gap-2"
               >
-                <Input v-model="row.key" placeholder="Key" :disabled="row.key === 'in-use' || row.disabled" />
-                <Input v-model="row.value" placeholder="Value" :disabled="row.key === 'in-use' || row.disabled" />
+                <Input v-model="row.key" :placeholder="t('Key')" :disabled="row.key === 'in-use' || row.disabled" />
+                <Input v-model="row.value" :placeholder="t('Value')" :disabled="row.key === 'in-use' || row.disabled" />
                 <Button
                   variant="ghost"
                   size="sm"
@@ -4582,10 +4616,10 @@ const confirmDelete = async () => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="editMetalakeOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editMetalakeOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEditMetalake">
             <Icon name="ri:save-3-line" class="size-4" />
-            <span>Update</span>
+            <span>{{ t('Update') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4600,14 +4634,14 @@ const confirmDelete = async () => {
         </DialogHeader>
         <div class="space-y-2">
           <JsonEditor v-model="editJson" />
-          <p class="text-xs text-muted-foreground">Tip: Use the format button to pretty-print JSON.</p>
+          <p class="text-xs text-muted-foreground">{{ t('Tip: Use the format button to pretty-print JSON.') }}</p>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="editOpen = false">Cancel</Button>
+          <Button variant="outline" @click="editOpen = false">{{ t('Cancel') }}</Button>
           <Button :disabled="isLoading" class="inline-flex items-center gap-2" @click="submitEdit">
             <Icon v-if="editMode === 'create'" name="ri:add-line" class="size-4" />
             <Icon v-else name="ri:save-3-line" class="size-4" />
-            <span>{{ editMode === 'create' ? 'Create' : 'Save' }}</span>
+            <span>{{ editMode === 'create' ? t('Create') : t('Save') }}</span>
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -4618,11 +4652,11 @@ const confirmDelete = async () => {
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{{ deleteTitle }}</AlertDialogTitle>
-          <AlertDialogDescription> This operation cannot be undone. </AlertDialogDescription>
+          <AlertDialogDescription>{{ t('This operation cannot be undone.') }}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
-          <AlertDialogAction @click="confirmDelete">Delete</AlertDialogAction>
+          <AlertDialogCancel>{{ t('Cancel') }}</AlertDialogCancel>
+          <AlertDialogAction @click="confirmDelete">{{ t('Delete') }}</AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>

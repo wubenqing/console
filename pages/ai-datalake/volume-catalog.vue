@@ -15,6 +15,7 @@ import { Separator } from '@/components/ui/separator'
 import { useMessage } from '@/lib/ui/message'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Icon } from '#components'
 
 type ColumnInfo = {
@@ -41,6 +42,7 @@ type QueryCondition = {
 }
 
 const message = useMessage()
+const { t } = useI18n()
 
 const schemaColumns = ref<ColumnInfo[]>([])
 const schemaLoading = ref(false)
@@ -175,7 +177,7 @@ const fetchSchema = async () => {
     const response = await $fetch<{ columns: ColumnInfo[] }>('/api/volume-catalog/schema')
     schemaColumns.value = response.columns || []
   } catch (error: any) {
-    const messageText = error?.statusMessage || error?.message || 'Failed to load schema.'
+    const messageText = error?.statusMessage || error?.message || t('Failed to load schema.')
     queryError.value = messageText
     message.error(messageText)
   } finally {
@@ -302,7 +304,7 @@ const runQuery = async () => {
     results.value = response.rows || []
     queryInitialized.value = true
   } catch (error: any) {
-    const messageText = error?.statusMessage || error?.message || 'Query failed.'
+    const messageText = error?.statusMessage || error?.message || t('Query failed.')
     queryError.value = messageText
     message.error(messageText)
   } finally {
@@ -361,43 +363,47 @@ onMounted(() => {
   <Page class="overflow-x-hidden">
     <PageHeader>
       <div>
-        <h1 class="text-xl font-semibold">Volume Catalog</h1>
+        <h1 class="text-xl font-semibold">{{ t('Volume Catalog') }}</h1>
       </div>
       <template #actions>
         <Button size="sm" variant="outline" :disabled="schemaLoading" @click="refreshSchema">
           <Icon name="ri:refresh-line" class="mr-2 size-4" />
-          Reset
+          {{ t('Reset') }}
         </Button>
       </template>
     </PageHeader>
 
     <Card>
       <CardHeader class="flex flex-row items-center justify-between gap-4">
-        <CardTitle>Query Panel</CardTitle>
+        <CardTitle>{{ t('Query Panel') }}</CardTitle>
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="grid gap-4 lg:grid-cols-12" :class="{ 'opacity-50 pointer-events-none': !panelActive }">
           <div class="space-y-2 lg:col-span-4">
-            <Label>Column Name</Label>
+            <Label>{{ t('Column Name') }}</Label>
             <Selector
               v-model="selectedColumn"
               :options="columnOptions"
               :disabled="!panelActive || schemaLoading || columnOptions.length === 0"
-              placeholder="Select column"
+              :placeholder="t('Select column')"
             />
           </div>
           <div class="space-y-2 lg:col-span-3">
-            <Label>Operator</Label>
+            <Label>{{ t('Operator') }}</Label>
             <Selector
               v-model="selectedOperator"
               :options="operatorOptions"
               :disabled="!panelActive"
-              placeholder="Select operator"
+              :placeholder="t('Select operator')"
             />
           </div>
           <div class="space-y-2 lg:col-span-3">
-            <Label>Value</Label>
-            <Input v-model="selectedValue" :disabled="!panelActive || !isValueRequired" placeholder="Enter value" />
+            <Label>{{ t('Value') }}</Label>
+            <Input
+              v-model="selectedValue"
+              :disabled="!panelActive || !isValueRequired"
+              :placeholder="t('Enter value')"
+            />
           </div>
         </div>
 
@@ -405,14 +411,14 @@ onMounted(() => {
           <Button variant="ghost" size="sm" :disabled="!panelActive || !selectedColumn" @click="clearConditionInput">
             <Icon name="ri:delete-bin-line" class="size-4" />
           </Button>
-          <Button :disabled="!panelActive || !canAddCondition" @click="addCondition">Add</Button>
+          <Button :disabled="!panelActive || !canAddCondition" @click="addCondition">{{ t('Add') }}</Button>
         </div>
 
         <Separator />
 
         <div class="flex items-center justify-between gap-3">
           <div class="flex items-center gap-2">
-            <h3 class="text-sm font-medium">Conditions</h3>
+            <h3 class="text-sm font-medium">{{ t('Conditions') }}</h3>
             <span class="text-xs text-muted-foreground"
               >({{ conditionGroups.reduce((sum, g) => sum + g.conditions.length, 0) }})</span
             >
@@ -422,11 +428,11 @@ onMounted(() => {
           <ul class="space-y-1 text-xs text-muted-foreground">
             <li class="flex items-center gap-2">
               <span class="text-[10px]">◆</span>
-              <span>Conditions between different groups: OR</span>
+              <span>{{ t('Conditions between different groups: OR') }}</span>
             </li>
             <li class="flex items-center gap-2">
               <span class="text-[10px]">◆</span>
-              <span>Conditions within the same group: AND</span>
+              <span>{{ t('Conditions within the same group: AND') }}</span>
             </li>
           </ul>
         </div>
@@ -438,7 +444,7 @@ onMounted(() => {
             @click="activatePanel('OR')"
           >
             <Icon name="ri:add-line" class="mr-1 size-4" />
-            Condition Group
+            {{ t('Condition Group') }}
           </Button>
         </div>
 
@@ -448,7 +454,9 @@ onMounted(() => {
             <div class="space-y-2 rounded-lg border border-dashed border-muted-foreground/30 p-4">
               <!-- Group header with AND button -->
               <div class="flex items-center gap-2">
-                <span class="text-xs font-medium text-muted-foreground">Group {{ groupIndex + 1 }}</span>
+                <span class="text-xs font-medium text-muted-foreground">{{
+                  t('Group {index}', { index: groupIndex + 1 })
+                }}</span>
                 <Button
                   variant="outline"
                   size="sm"
@@ -456,7 +464,7 @@ onMounted(() => {
                   @click="activatePanel('AND', groupIndex)"
                 >
                   <Icon name="ri:add-line" class="mr-1 size-4" />
-                  AND
+                  {{ t('AND') }}
                 </Button>
               </div>
 
@@ -466,7 +474,9 @@ onMounted(() => {
                   :key="`condition-${groupIndex}-${conditionIndex}`"
                 >
                   <!-- AND separator -->
-                  <div v-if="conditionIndex > 0" class="text-xs font-semibold text-muted-foreground">AND</div>
+                  <div v-if="conditionIndex > 0" class="text-xs font-semibold text-muted-foreground">
+                    {{ t('AND') }}
+                  </div>
 
                   <!-- Condition -->
                   <div class="flex flex-wrap items-center gap-2 rounded-md bg-muted/50 px-3 py-2">
@@ -492,7 +502,7 @@ onMounted(() => {
               class="flex items-center justify-center gap-2 text-xs font-semibold text-muted-foreground"
             >
               <div class="flex-1 border-t border-muted-foreground/30"></div>
-              OR
+              {{ t('OR') }}
               <div class="flex-1 border-t border-muted-foreground/30"></div>
             </div>
           </template>
@@ -503,7 +513,7 @@ onMounted(() => {
 
           <!-- Create query button -->
           <Button :disabled="queryLoading || conditionGroups.length === 0" class="self-start" @click="handleNewQuery">
-            Create a new query
+            {{ t('Create a new query') }}
           </Button>
         </div>
       </CardContent>
@@ -511,7 +521,7 @@ onMounted(() => {
 
     <Card v-if="queryLoading || results.length > 0" class="mt-4 w-full max-w-screen-2xl mx-auto">
       <CardHeader>
-        <CardTitle>Query Results</CardTitle>
+        <CardTitle>{{ t('Query Results') }}</CardTitle>
       </CardHeader>
       <CardContent class="p-0 w-full">
         <div class="h-[480px] overflow-x-auto rounded-md border border-b-0 rounded-b-none">

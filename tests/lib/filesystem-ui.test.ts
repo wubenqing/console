@@ -13,6 +13,7 @@ function toSummaries(entries: DirectoryEntry[]): DirectorySummary[] {
   return entries.map(d => ({
     name: d.name,
     mountedHostCount: d.mounts.filter(m => m.status === 'mounted').length,
+    mountedCount: d.mounts.length,
     createdAt: d.createdAt,
     statusSummary: d.mounts.length === 0 ? 'idle' : 'active',
   }))
@@ -61,12 +62,14 @@ describe('directory list page data', () => {
     expect(summaries[0]).toEqual({
       name: 'idle-dir',
       mountedHostCount: 0,
+      mountedCount: 0,
       createdAt: '2026-03-30T09:00:00Z',
       statusSummary: 'idle',
     })
     expect(summaries[1]).toEqual({
       name: 'active-dir',
       mountedHostCount: 2,
+      mountedCount: 2,
       createdAt: '2026-03-30T09:00:00Z',
       statusSummary: 'active',
     })

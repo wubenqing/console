@@ -6,6 +6,7 @@ export default defineEventHandler(async (): Promise<DirectorySummary[]> => {
   return dirs.map(d => ({
     name: d.name,
     mountedHostCount: d.mounts.filter(m => m.status === 'mounted').length,
+    mountedCount: d.mounts.length,
     createdAt: d.createdAt,
     statusSummary: d.mounts.length === 0 ? 'idle' : 'active',
   }))

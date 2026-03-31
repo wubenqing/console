@@ -33,6 +33,7 @@ export interface DirectoryRegistry {
 export interface DirectorySummary {
   name: string
   mountedHostCount: number
+  mountedCount: number
   createdAt: string
   statusSummary: string
 }

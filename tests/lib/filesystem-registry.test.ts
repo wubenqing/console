@@ -48,6 +48,7 @@ function toSummary(entry: DirectoryEntry): DirectorySummary {
   return {
     name: entry.name,
     mountedHostCount: entry.mounts.filter(m => m.status === 'mounted').length,
+    mountedCount: entry.mounts.length,
     createdAt: entry.createdAt,
     statusSummary: entry.mounts.length === 0 ? 'idle' : 'active',
   }

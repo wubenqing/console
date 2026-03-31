@@ -10,8 +10,8 @@
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">{{ t('All Status') }}</SelectItem>
-            <SelectItem value="active">{{ t('Active') }}</SelectItem>
-            <SelectItem value="inactive">{{ t('Inactive') }}</SelectItem>
+            <SelectItem value="active">{{ t('Has Mounts') }}</SelectItem>
+            <SelectItem value="inactive">{{ t('No Mounts') }}</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" @click="showCreate = true">
@@ -73,6 +73,12 @@ function openEdit(name: string) {
   showEdit.value = true
 }
 
+function getStatusLabel(status: string) {
+  if (status === 'active') return t('Has Mounts')
+  if (status === 'inactive' || status === 'idle') return t('No Mounts')
+  return status
+}
+
 const columns: ColumnDef<DirectorySummary>[] = [
   {
     accessorKey: 'name',
@@ -81,9 +87,9 @@ const columns: ColumnDef<DirectorySummary>[] = [
     filterFn: 'includesString',
   },
   {
-    accessorKey: 'mountedHostCount',
-    header: () => t('Mounted Hosts'),
-    cell: ({ row }) => String(row.original.mountedHostCount),
+    accessorKey: 'mountedCount',
+    header: () => t('Mounted Count'),
+    cell: ({ row }) => String(row.original.mountedCount),
   },
   {
     accessorKey: 'createdAt',
@@ -98,7 +104,7 @@ const columns: ColumnDef<DirectorySummary>[] = [
         {
           class: row.original.statusSummary === 'active' ? 'text-green-600 font-medium' : 'text-muted-foreground',
         },
-        row.original.statusSummary
+        getStatusLabel(row.original.statusSummary)
       ),
     filterFn: (row, columnId, filterValue) => {
       if (!filterValue || filterValue === 'all') return true
