@@ -11,7 +11,7 @@
           <SelectContent>
             <SelectItem value="all">{{ t('All Status') }}</SelectItem>
             <SelectItem value="active">{{ t('Has Mounts') }}</SelectItem>
-            <SelectItem value="inactive">{{ t('No Mounts') }}</SelectItem>
+            <SelectItem value="idle">{{ t('No Mounts') }}</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="outline" @click="showCreate = true">
