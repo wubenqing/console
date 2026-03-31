@@ -1,0 +1,19 @@
+[Unit]
+Description=AiUnistor NFS Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/aiunistor/nfs-agent
+EnvironmentFile=/etc/aiunistor/nfs-agent.env
+ExecStart=/opt/aiunistor/nfs-agent/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 18081
+Restart=always
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
