@@ -27,7 +27,6 @@
   - Verify all required parameters included
   - Test special characters escaped correctly ($\_\_all)
 
-
 ## 3. Testing
 
 - [x] 3.1 Local development test

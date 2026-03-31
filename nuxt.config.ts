@@ -42,6 +42,9 @@ export default defineNuxtConfig({
       schema: process.env.VOLUME_CATALOG_DB_SCHEMA || 'public',
       table: process.env.VOLUME_CATALOG_DB_TABLE || 'object_table',
     },
+    filesystem: {
+      nfsExportHost: process.env.NFS_EXPORT_HOST || '',
+    },
     public: {
       session: {
         // 临时凭证有效期
