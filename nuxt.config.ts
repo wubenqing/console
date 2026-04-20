@@ -3,6 +3,12 @@ const appName = process.env.APP_NAME || 'AI UniStor'
 const baseUrl = (process.env.BASE_URL || '/aiunistor/console/').replace(/\/$/, '')
 const appDescription = process.env.APP_DESCRIPTION || 'AIUniStor is a distributed file system written in Rust.'
 const gravitinoUrl = (process.env.GRAVITINO_API_URL || 'http://localhost:8090').replace(/\/$/, '')
+const gpustackApiUrl = (process.env.GPUSTACK_API_URL || '').replace(/\/$/, '')
+const gpustackApiKey = process.env.GPUSTACK_API_KEY || ''
+const gpustackAllowedModelNames = (process.env.GPUSTACK_ALLOWED_MODEL_NAMES || '')
+  .split(',')
+  .map(name => name.trim())
+  .filter(Boolean)
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -45,6 +51,11 @@ export default defineNuxtConfig({
     filesystem: {
       nfsExportHost: process.env.NFS_EXPORT_HOST || '',
     },
+    gpustack: {
+      apiUrl: gpustackApiUrl,
+      apiKey: gpustackApiKey,
+      allowedModelNames: gpustackAllowedModelNames,
+    },
     public: {
       session: {
         // 临时凭证有效期
@@ -83,6 +94,10 @@ export default defineNuxtConfig({
         },
         refreshInterval: process.env.GRAFANA_REFRESH || '15s',
         timeRange: process.env.GRAFANA_TIME_RANGE || 'now-1h',
+      },
+
+      gpustack: {
+        allowedModelNames: gpustackAllowedModelNames,
       },
 
       // 授权信息

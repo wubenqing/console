@@ -11,7 +11,9 @@ const enUs = JSON.parse(readFileSync('i18n/locales/en-US.json', 'utf8'))
 const zhCn = JSON.parse(readFileSync('i18n/locales/zh-CN.json', 'utf8'))
 const re = /\bt\(\s*["'`]([^"'`]+)["'`]/g
 
-let missingEn = [], missingZh = [], allKeys = new Set()
+let missingEn = [],
+  missingZh = [],
+  allKeys = new Set()
 for (const f of pages) {
   const src = readFileSync(f, 'utf8')
   for (const m of src.matchAll(re)) {

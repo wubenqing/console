@@ -1,7 +1,9 @@
 import { resolve } from 'path'
+import vue from '@vitejs/plugin-vue'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
+  plugins: [vue() as any],
   test: {
     coverage: {
       provider: 'v8',
@@ -19,6 +21,9 @@ export default defineConfig({
   },
   resolve: {
     alias: {
+      '#components': resolve(__dirname, 'tests/nuxt-components.ts'),
+      '#imports': resolve(__dirname, 'tests/nuxt-imports.ts'),
+      'vue-i18n': resolve(__dirname, 'tests/vue-i18n.ts'),
       '~': resolve(__dirname, '.'),
       '@': resolve(__dirname, '.'),
     },
