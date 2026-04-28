@@ -94,6 +94,26 @@ export default defineNuxtConfig({
         },
         refreshInterval: process.env.GRAFANA_REFRESH || '15s',
         timeRange: process.env.GRAFANA_TIME_RANGE || 'now-1h',
+        defaultParams: {
+          'var-datasource': 'prometheus',
+          'var-job': '$__all',
+          'var-path': '$__all',
+          'var-bucket': '$__all',
+          'var-drive': '$__all',
+        },
+        laketokenMonitor: {
+          dashboard: {
+            id: process.env.GRAFANA_LAKETOKEN_DASHBOARD_ID || 'lmcache-main-v1',
+            slug: process.env.GRAFANA_LAKETOKEN_DASHBOARD_SLUG || 'lmcache',
+          },
+          refreshInterval: process.env.GRAFANA_LAKETOKEN_REFRESH || '5s',
+          timeRange: process.env.GRAFANA_LAKETOKEN_TIME_RANGE || 'now-1h',
+          defaultParams: {
+            'var-datasource': process.env.GRAFANA_LAKETOKEN_PROMETHEUS_VAR || 'prometheus-1',
+            'var-model_name': '$__all',
+            'var-worker_id': '$__all',
+          },
+        },
       },
 
       gpustack: {

@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useRuntimeConfig } from '#imports'
+import { useRouter, useRuntimeConfig } from '#imports'
 import DataTable from '@/components/data-table/data-table.vue'
 import DataTablePagination from '@/components/data-table/data-table-pagination.vue'
 import { useDataTable } from '@/components/data-table/useDataTable'
@@ -24,8 +24,12 @@ import type { GpustackModel, GpustackModelInstance } from '~/types/gpustack'
 
 const gpustack = useGpustack()
 const message = useMessage()
+const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
 const { t } = useI18n()
+
+const LAKETOKEN_MONITOR_TARGET = 'lmcache-main-v1'
+const LAKETOKEN_MONITOR_SOURCE = '/ai-datalake/laketoken'
 
 const models = ref<GpustackModel[]>([])
 const instanceRows = ref<LaketokenInstanceRow[]>([])
@@ -127,22 +131,37 @@ const columns: ColumnDef<LaketokenInstanceRow>[] = [
     enableSorting: false,
     enableHiding: false,
     meta: {
-      width: 140,
+      width: 220,
     },
     cell: ({ row }) =>
-      h(
-        Button,
-        {
-          type: 'button',
-          size: 'sm',
-          variant: 'outline',
-          disabled: loadingEditor.value || applying.value,
-          onClick: () => {
-            void openEditDialog(row.original)
+      h('div', { class: 'flex items-center gap-2' }, [
+        h(
+          Button,
+          {
+            type: 'button',
+            size: 'sm',
+            variant: 'outline',
+            disabled: loadingEditor.value || applying.value,
+            onClick: () => {
+              void openEditDialog(row.original)
+            },
           },
-        },
-        () => t('Edit')
-      ),
+          () => t('Edit')
+        ),
+        h(
+          Button,
+          {
+            type: 'button',
+            size: 'sm',
+            variant: 'outline',
+            disabled: applying.value,
+            onClick: () => {
+              void openMonitor()
+            },
+          },
+          () => t('Monitor')
+        ),
+      ]),
   },
 ]
 
@@ -238,6 +257,16 @@ async function openEditDialog(row: LaketokenInstanceRow) {
   } finally {
     loadingEditor.value = false
   }
+}
+
+async function openMonitor() {
+  await router.push({
+    path: '/dashboard',
+    query: {
+      target: LAKETOKEN_MONITOR_TARGET,
+      source: LAKETOKEN_MONITOR_SOURCE,
+    },
+  })
 }
 
 async function refreshPage() {

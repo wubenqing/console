@@ -85,7 +85,7 @@ describe('selected pages localization regression', () => {
       'No model instances',
       'No GPUStack vLLM model instances are currently available for LakeToken management.',
       'Edit KV Cache Configuration',
-      'Update the selected model instance\'s parent GPUStack model configuration.',
+      "Update the selected model instance's parent GPUStack model configuration.",
       'Editing {instanceName} updates the parent model {modelName} and recreates all of its running instances.',
       'KV cache',
       'Enable LMCache-backed KV transfer for this model.',

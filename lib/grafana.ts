@@ -6,6 +6,7 @@ export interface GrafanaConfig {
   }
   refreshInterval: string
   timeRange: string
+  defaultParams?: Record<string, string>
 }
 
 const DEFAULT_FILTER_VALUES = {
@@ -16,7 +17,7 @@ const DEFAULT_FILTER_VALUES = {
   'var-drive': '$__all',
 } as const
 
-export function buildGrafanaDashboardUrl(config: GrafanaConfig): string {
+export function buildGrafanaDashboardUrl(config: GrafanaConfig, extraParams: Record<string, string> = {}): string {
   const normalizedBaseUrl = config.url.replace(/\/$/, '')
   const dashboardPath = `/d/${encodeURIComponent(config.dashboard.id)}/${encodeURIComponent(config.dashboard.slug)}`
   const params = new URLSearchParams({
@@ -27,7 +28,8 @@ export function buildGrafanaDashboardUrl(config: GrafanaConfig): string {
     refresh: config.refreshInterval,
     kiosk: 'true',
     theme: 'light',
-    ...DEFAULT_FILTER_VALUES,
+    ...(config.defaultParams || DEFAULT_FILTER_VALUES),
+    ...extraParams,
   })
 
   return `${normalizedBaseUrl}${dashboardPath}?${params.toString()}`

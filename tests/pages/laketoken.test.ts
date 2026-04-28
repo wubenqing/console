@@ -11,6 +11,9 @@ const mocks = vi.hoisted(() => {
 
   return {
     loadingDestroy,
+    router: {
+      push: vi.fn(),
+    },
     gpustack: {
       listModels: vi.fn(),
       getModel: vi.fn(),
@@ -46,6 +49,7 @@ vi.mock('~/composables/ui', () => ({
 
 vi.mock('#imports', () => ({
   useRuntimeConfig: () => mocks.runtimeConfig,
+  useRouter: () => mocks.router,
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -367,6 +371,23 @@ describe('LakeToken page', () => {
     expect(wrapper.text()).toContain('qwen3-14b')
     expect(wrapper.text()).toContain('qwen3-14b-instance-1')
     expect(wrapper.text()).not.toContain('Qwen 2.5 7B')
+  })
+
+  it('navigates to the dashboard monitor view from the monitor action', async () => {
+    const wrapper = await mountPage()
+    const monitorButton = wrapper.findAll('button').find(button => button.text().includes('Monitor'))
+
+    expect(monitorButton).toBeDefined()
+
+    await monitorButton!.trigger('click')
+
+    expect(mocks.router.push).toHaveBeenCalledWith({
+      path: '/dashboard',
+      query: {
+        target: 'lmcache-main-v1',
+        source: '/ai-datalake/laketoken',
+      },
+    })
   })
 
   it('surfaces apply failures without deleting instances', async () => {
