@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { useRouter, useRuntimeConfig } from '#imports'
+import { useRuntimeConfig } from '#imports'
 import DataTable from '@/components/data-table/data-table.vue'
 import DataTablePagination from '@/components/data-table/data-table-pagination.vue'
 import { useDataTable } from '@/components/data-table/useDataTable'
@@ -20,16 +20,13 @@ import {
   extractLaketokenForm,
   type LaketokenFormState,
 } from '~/lib/gpustack/laketoken'
+import { buildGrafanaDashboardUrl, type GrafanaConfig } from '~/lib/grafana'
 import type { GpustackModel, GpustackModelInstance } from '~/types/gpustack'
 
 const gpustack = useGpustack()
 const message = useMessage()
-const router = useRouter()
 const runtimeConfig = useRuntimeConfig()
 const { t } = useI18n()
-
-const LAKETOKEN_MONITOR_TARGET = 'lmcache-main-v1'
-const LAKETOKEN_MONITOR_SOURCE = '/ai-datalake/laketoken'
 
 const models = ref<GpustackModel[]>([])
 const instanceRows = ref<LaketokenInstanceRow[]>([])
@@ -44,6 +41,15 @@ const editOpen = ref(false)
 const applyError = ref('')
 const applySuccess = ref('')
 
+const lmcacheMaxLocalCpuSizeDisplay = computed({
+  get: () => (form.value.lmcacheLocalCpu ? form.value.lmcacheMaxLocalCpuSize : ''),
+  set: value => {
+    if (form.value.lmcacheLocalCpu) {
+      form.value.lmcacheMaxLocalCpuSize = value
+    }
+  },
+})
+
 interface LaketokenInstanceRow {
   id: string
   modelId: number
@@ -54,12 +60,39 @@ interface LaketokenInstanceRow {
   backendVersion: string
 }
 
-const publicGpustackConfig = runtimeConfig.public as {
+const publicRuntimeConfig = runtimeConfig.public as {
   gpustack?: {
     allowedModelNames?: string[]
   }
+  grafana?: GrafanaConfig & {
+    laketokenMonitor?: Omit<GrafanaConfig, 'url'> & {
+      url?: string
+    }
+  }
 }
-const allowedModelNames = new Set((publicGpustackConfig.gpustack?.allowedModelNames || []).map((name: string) => name))
+const allowedModelNames = new Set((publicRuntimeConfig.gpustack?.allowedModelNames || []).map((name: string) => name))
+
+const monitorGrafanaUrl = computed(() => {
+  const baseConfig = publicRuntimeConfig.grafana
+
+  if (!baseConfig) {
+    return ''
+  }
+
+  const monitorConfig = baseConfig.laketokenMonitor
+
+  if (!monitorConfig) {
+    return buildGrafanaDashboardUrl(baseConfig)
+  }
+
+  return buildGrafanaDashboardUrl({
+    url: monitorConfig.url || baseConfig.url,
+    dashboard: monitorConfig.dashboard,
+    refreshInterval: monitorConfig.refreshInterval,
+    timeRange: monitorConfig.timeRange,
+    defaultParams: monitorConfig.defaultParams,
+  })
+})
 
 const selectableModels = computed(() =>
   models.value.filter(model => {
@@ -147,19 +180,6 @@ const columns: ColumnDef<LaketokenInstanceRow>[] = [
             },
           },
           () => t('Edit')
-        ),
-        h(
-          Button,
-          {
-            type: 'button',
-            size: 'sm',
-            variant: 'outline',
-            disabled: applying.value,
-            onClick: () => {
-              void openMonitor()
-            },
-          },
-          () => t('Monitor')
         ),
       ]),
   },
@@ -257,16 +277,6 @@ async function openEditDialog(row: LaketokenInstanceRow) {
   } finally {
     loadingEditor.value = false
   }
-}
-
-async function openMonitor() {
-  await router.push({
-    path: '/dashboard',
-    query: {
-      target: LAKETOKEN_MONITOR_TARGET,
-      source: LAKETOKEN_MONITOR_SOURCE,
-    },
-  })
 }
 
 async function refreshPage() {
@@ -367,6 +377,22 @@ onMounted(() => {
         :empty-description="t('No GPUStack vLLM model instances are currently available for LakeToken management.')"
       />
       <DataTablePagination :table="table" />
+
+      <div v-if="monitorGrafanaUrl" class="space-y-3">
+        <div class="flex items-center justify-between gap-3">
+          <h2 class="text-lg font-semibold">{{ t('Monitor') }}</h2>
+        </div>
+
+        <div class="h-[75vh] min-h-[560px] overflow-hidden rounded-lg border bg-background shadow-sm">
+          <iframe
+            :src="monitorGrafanaUrl"
+            class="h-full w-full border-0"
+            title="Grafana Dashboard"
+            loading="lazy"
+            referrerpolicy="strict-origin-when-cross-origin"
+          />
+        </div>
+      </div>
     </div>
 
     <Modal
@@ -422,16 +448,6 @@ onMounted(() => {
           <div class="grid gap-3">
             <div class="grid items-center gap-3 rounded-md border px-4 py-3 md:grid-cols-[260px_minmax(0,1fr)]">
               <div>
-                <p class="text-sm font-medium">LMCACHE_USE_EXPERIMENTAL</p>
-                <p class="text-xs text-muted-foreground">{{ t('Enable the experimental LMCache mode.') }}</p>
-              </div>
-              <div class="flex justify-start md:justify-end">
-                <Switch v-model="form.lmcacheUseExperimental" :disabled="!form.kvCacheEnabled || applying" />
-              </div>
-            </div>
-
-            <div class="grid items-center gap-3 rounded-md border px-4 py-3 md:grid-cols-[260px_minmax(0,1fr)]">
-              <div>
                 <p class="text-sm font-medium">LMCACHE_CHUNK_SIZE</p>
                 <p class="text-xs text-muted-foreground">
                   {{ t('Chunk size used by LMCache when KV cache is enabled.') }}
@@ -455,7 +471,10 @@ onMounted(() => {
                 <p class="text-sm font-medium">LMCACHE_MAX_LOCAL_CPU_SIZE</p>
                 <p class="text-xs text-muted-foreground">{{ t('Maximum local CPU cache size.') }}</p>
               </div>
-              <Input v-model="form.lmcacheMaxLocalCpuSize" :disabled="!form.kvCacheEnabled || applying" />
+              <Input
+                v-model="lmcacheMaxLocalCpuSizeDisplay"
+                :disabled="!form.kvCacheEnabled || !form.lmcacheLocalCpu || applying"
+              />
             </div>
 
             <div class="grid items-center gap-3 rounded-md border px-4 py-3 md:grid-cols-[260px_minmax(0,1fr)]">

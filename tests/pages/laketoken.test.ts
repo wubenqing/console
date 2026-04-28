@@ -11,9 +11,6 @@ const mocks = vi.hoisted(() => {
 
   return {
     loadingDestroy,
-    router: {
-      push: vi.fn(),
-    },
     gpustack: {
       listModels: vi.fn(),
       getModel: vi.fn(),
@@ -34,6 +31,35 @@ const mocks = vi.hoisted(() => {
         gpustack: {
           allowedModelNames: [] as string[],
         },
+        grafana: {
+          url: 'http://grafana.example.com/',
+          dashboard: {
+            id: 'rustfs-s3',
+            slug: 'rustfs dashboard',
+          },
+          refreshInterval: '15s',
+          timeRange: 'now-1h',
+          defaultParams: {
+            'var-datasource': 'prometheus',
+            'var-job': '$__all',
+            'var-path': '$__all',
+            'var-bucket': '$__all',
+            'var-drive': '$__all',
+          },
+          laketokenMonitor: {
+            dashboard: {
+              id: 'lmcache-main-v1',
+              slug: 'lmcache',
+            },
+            refreshInterval: '5s',
+            timeRange: 'now-1h',
+            defaultParams: {
+              'var-datasource': 'prometheus-1',
+              'var-model_name': '$__all',
+              'var-worker_id': '$__all',
+            },
+          },
+        },
       },
     },
   }
@@ -49,7 +75,6 @@ vi.mock('~/composables/ui', () => ({
 
 vi.mock('#imports', () => ({
   useRuntimeConfig: () => mocks.runtimeConfig,
-  useRouter: () => mocks.router,
 }))
 
 vi.mock('vue-i18n', () => ({
@@ -311,7 +336,7 @@ describe('LakeToken page', () => {
     await flushPage()
 
     expect(mocks.gpustack.getModel).toHaveBeenCalledWith(7)
-    expect(wrapper.text()).toContain('LMCACHE_USE_EXPERIMENTAL')
+    expect(wrapper.text()).not.toContain('LMCACHE_USE_EXPERIMENTAL')
     expect(wrapper.text()).toContain('LMCACHE_LOCAL_DISK')
     expect(wrapper.text()).toContain('PROMETHEUS_MULTIPROC_DIR')
     expect(wrapper.text()).not.toContain('KV transfer config')
@@ -355,6 +380,39 @@ describe('LakeToken page', () => {
     expect(wrapper.text()).toContain('Configuration applied. GPUStack is recreating the serving instances.')
   })
 
+  it('hides the local CPU size value when local CPU caching is disabled', async () => {
+    mocks.gpustack.getModel.mockResolvedValue({
+      ...configuredModel,
+      env: {
+        ...configuredModel.env,
+        LMCACHE_LOCAL_CPU: 'False',
+        LMCACHE_MAX_LOCAL_CPU_SIZE: '128',
+      },
+    })
+
+    const wrapper = await mountPage()
+    const editButton = wrapper.findAll('button').find(button => button.text().includes('Edit'))
+
+    expect(editButton).toBeDefined()
+
+    await editButton!.trigger('click')
+    await flushPage()
+
+    const localCpuSizeLabel = wrapper.findAll('p').find(label => label.text() === 'LMCACHE_MAX_LOCAL_CPU_SIZE')
+
+    expect(localCpuSizeLabel).toBeDefined()
+
+    const localCpuSizeRow = localCpuSizeLabel!.element.closest('div.grid.items-center')
+
+    expect(localCpuSizeRow).not.toBeNull()
+
+    const localCpuSizeInput = localCpuSizeRow!.querySelector('input') as HTMLInputElement | null
+
+    expect(localCpuSizeInput).not.toBeNull()
+    expect(localCpuSizeInput!.disabled).toBe(true)
+    expect(localCpuSizeInput!.value).toBe('')
+  })
+
   it('shows only allowlisted models when a gpustack model allowlist is configured', async () => {
     mocks.runtimeConfig.public.gpustack.allowedModelNames = ['qwen3-14b']
     mocks.gpustack.listModels.mockResolvedValue(pageResponse([baseModel, allowedModel]))
@@ -373,21 +431,19 @@ describe('LakeToken page', () => {
     expect(wrapper.text()).not.toContain('Qwen 2.5 7B')
   })
 
-  it('navigates to the dashboard monitor view from the monitor action', async () => {
+  it('renders the monitor dashboard below the table', async () => {
     const wrapper = await mountPage()
-    const monitorButton = wrapper.findAll('button').find(button => button.text().includes('Monitor'))
 
-    expect(monitorButton).toBeDefined()
+    expect(wrapper.findAll('button').some(button => button.text().includes('Monitor'))).toBe(false)
+    expect(wrapper.text()).toContain('Monitor')
 
-    await monitorButton!.trigger('click')
+    const iframe = wrapper.find('iframe')
 
-    expect(mocks.router.push).toHaveBeenCalledWith({
-      path: '/dashboard',
-      query: {
-        target: 'lmcache-main-v1',
-        source: '/ai-datalake/laketoken',
-      },
-    })
+    expect(iframe.exists()).toBe(true)
+    expect(iframe.attributes('src')).toContain('/d/lmcache-main-v1/lmcache')
+    expect(iframe.attributes('src')).toContain('var-datasource=prometheus-1')
+    expect(iframe.attributes('src')).toContain('var-model_name=%24__all')
+    expect(iframe.attributes('src')).toContain('var-worker_id=%24__all')
   })
 
   it('surfaces apply failures without deleting instances', async () => {
