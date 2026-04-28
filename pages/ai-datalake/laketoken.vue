@@ -379,10 +379,6 @@ onMounted(() => {
       <DataTablePagination :table="table" />
 
       <div v-if="monitorGrafanaUrl" class="space-y-3">
-        <div class="flex items-center justify-between gap-3">
-          <h2 class="text-lg font-semibold">{{ t('Monitor') }}</h2>
-        </div>
-
         <div class="h-[75vh] min-h-[560px] overflow-hidden rounded-lg border bg-background shadow-sm">
           <iframe
             :src="monitorGrafanaUrl"

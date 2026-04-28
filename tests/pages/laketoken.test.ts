@@ -434,8 +434,7 @@ describe('LakeToken page', () => {
   it('renders the monitor dashboard below the table', async () => {
     const wrapper = await mountPage()
 
-    expect(wrapper.findAll('button').some(button => button.text().includes('Monitor'))).toBe(false)
-    expect(wrapper.text()).toContain('Monitor')
+    expect(wrapper.text()).not.toContain('Monitor')
 
     const iframe = wrapper.find('iframe')
 
