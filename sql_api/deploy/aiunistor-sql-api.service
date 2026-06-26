@@ -1,0 +1,19 @@
+[Unit]
+Description=AiUnistor SQL API Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/aiunistor/sql_api
+EnvironmentFile=/etc/aiunistor/sql_api.env
+ExecStart=/opt/aiunistor/sql_api/.venv/bin/uvicorn app:app --host 0.0.0.0 --port 4008
+Restart=always
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=20
+
+[Install]
+WantedBy=multi-user.target
