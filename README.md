@@ -51,11 +51,18 @@ GRAFANA_DASHBOARD_ID=rustfs-s3
 GRAFANA_DASHBOARD_SLUG=rustfs
 GRAFANA_REFRESH=15s
 GRAFANA_TIME_RANGE=now-1h
+GRAFANA_LAKETOKEN_DASHBOARD_ID=lmcache-main-v1
+GRAFANA_LAKETOKEN_DASHBOARD_SLUG=lmcache
+GRAFANA_LAKETOKEN_REFRESH=5s
+GRAFANA_LAKETOKEN_TIME_RANGE=now-1h
 ```
 
 Configuration is auto-detected from server config, localStorage, or browser host.
 
-The dashboard route embeds Grafana with the public runtime config above. If your Grafana deployment differs, override those values in `.env` before starting the app.
+The dashboard route embeds Grafana with the public runtime config above. The default `/dashboard`
+view uses the RustFS dashboard, while LakeToken monitor mode switches to the dedicated LMCache
+dashboard configured by `GRAFANA_LAKETOKEN_*`. If your Grafana deployment differs, override those
+values in `.env` before starting the app.
 
 Grafana embedding requirements:
 
@@ -67,6 +74,7 @@ Manual verification notes:
 
 - Open `/dashboard` and confirm the iframe loads the expected dashboard.
 - Change `GRAFANA_URL` in `.env`, restart the app, and confirm the iframe points to the new Grafana instance.
+- Open the LakeToken page, click `Monitor`, and confirm the iframe loads `/d/lmcache-main-v1/lmcache` with the LMCache variables.
 - Resize the window at desktop resolutions such as `1920x1080` and `1366x768` and check that the page does not introduce extra scrollbars.
 - Use the Grafana side-panel filters and time range controls to confirm the embedded dashboard stays interactive.
 
